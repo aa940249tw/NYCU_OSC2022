@@ -12,7 +12,7 @@ all: clean kernel8.img
 start.o: start.S
 	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -c start.S -o start.o
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -c $< -o $@
 
 kernel8.img: start.o $(OBJS)
@@ -21,7 +21,10 @@ kernel8.img: start.o $(OBJS)
 
 clean:
 	rm kernel8.img kernel8.elf *.o >/dev/null 2>/dev/null || true
-	cd $(OBJ_DIR) && rm *.o >/dev/null 2>/dev/null || true
+	rm $(OBJ_DIR)/*.o >/dev/null 2>/dev/null || true
+
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
 
 run:
 	qemu-system-aarch64 -M raspi3 -kernel kernel8.img -serial null -serial stdio
