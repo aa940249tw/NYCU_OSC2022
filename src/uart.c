@@ -15,7 +15,7 @@
 #define AUX_MU_STAT     ((volatile unsigned int*)(MMIO_BASE+0x00215064))
 #define AUX_MU_BAUD     ((volatile unsigned int*)(MMIO_BASE+0x00215068))
 
-extern volatile unsigned char _end;
+extern volatile unsigned char __end;
 
 void uart_init()
 {
@@ -69,6 +69,17 @@ char uart_getc() {
     return r == '\r' ? '\n' : r;
 }
 
+char uart_getc_raw() {
+    char r;
+    // Check data ready field, wait until something is in the buffer
+    do {
+    	asm volatile("nop");
+    } while(!(*AUX_MU_LSR & 0x01));
+    // read
+    r = (char)(*AUX_MU_IO);
+    return r;
+}
+
 void uart_puts(char *s) {
     while(*s) {
         if(*s == '\n')
@@ -99,7 +110,7 @@ void printf(char *fmt, ...) {
     __builtin_va_start(args, fmt);
     // we don't have memory allocation yet, so we
     // simply place our string after our code
-    char *s = (char*)&_end;
+    char *s = (char*)&__end;
     // use sprintf to format our string
     vsprintf(s,fmt,args);
     // print out as usual

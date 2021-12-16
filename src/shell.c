@@ -1,17 +1,9 @@
 #include "uart.h"
 #include "reset.h"
 #include "mbox.h"
-
-
-int strcmp(const char *X, const char *Y) {
-    while (*X) {
-        if (*X != *Y)
-            break;
-        X++;
-        Y++;
-    }
-    return *(const unsigned char *)X - *(const unsigned char *)Y;
-}
+#include "uart_boot.h"
+#include "utils.h"
+#include "__cpio.h"
 
 void shell_init() {
 	uart_init();
@@ -25,10 +17,13 @@ void shell_select(char *cmd) {
 		return;
 	}
 	else if(!strcmp(cmd, "help")) {
-		uart_puts("\nhelp:\tprint this list.\n");
-		uart_puts("hello:\tprint \"Hello World!\".\n");
-		uart_puts("reboot:\treboot rpi3.\n");
-		uart_puts("status:\tget the hardware’s information.\n");
+		uart_puts("\nhelp:\t\tPrint this list.\n");
+		uart_puts("hello:\t\tPrint \"Hello World!\".\n");
+		uart_puts("reboot:\t\tReboot rpi3.\n");
+		uart_puts("status:\t\tGet the hardware’s information.\n");
+		uart_puts("load_img:\tLoad a new kernel image through uart.\n");
+		uart_puts("ls:\tList cpio archive files.\n");
+		uart_puts("cat:\tEnter a filename to get file content.\n");
 	}
 	else if(!strcmp(cmd, "hello")) {
 		uart_puts("\nHello World!\n");
@@ -41,6 +36,18 @@ void shell_select(char *cmd) {
 	else if(!strcmp(cmd, "status")) {
 		get_revision();
 		get_address();
+	}
+	else if(!strcmp(cmd, "load_img")) {
+		uart_puts("\nStarting loading process...\n");
+		reallocate();
+	}
+	else if(!strcmp(cmd, "ls")) {
+		printf("\n");
+		cpio_ls();
+	}
+	else if(!strcmp(cmd, "cat")) {
+		printf(" ");
+		cpio_cat();
 	}
 	else if(cmd[0] != '\0') uart_puts("\nshell: command not found.\n");
 }
@@ -87,8 +94,6 @@ void shell_input(char *cmd) {
             cmd[++end] = '\0';
 		}
 		printf("\r# %s \r\e[%dC", cmd, idx + 2);
-		//printf("%d %d\n", idx, end);
-		//printf("\r# %s \r", cmd);
 	}
 }
 
