@@ -27,6 +27,8 @@ int hex_to_int(char *s, int len) {
     return sum;
 }
 
-void *simple_malloc(unsigned long size) {
+char *simple_malloc(unsigned long size) {
+    char *tmp = (char *)allocator_address;
     allocator_address += size;
+    return tmp;
 }
