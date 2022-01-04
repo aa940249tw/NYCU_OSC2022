@@ -1,3 +1,6 @@
+#ifndef ___CPIO_H__
+#define ___CPIO_H__
+
 #define CPIO_ADDR 0x20000000 // Rpi3
 //#define CPIO_ADDR 0x8000000 // QEMU
 #define CPIO_SIZE 110
@@ -21,3 +24,5 @@ struct cpio_newc_header {
 
 void cpio_ls();
 void cpio_cat();
+
+#endif

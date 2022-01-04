@@ -1,3 +1,6 @@
+#ifndef __SPRINTF_H__
+#define __SPRINTF_H__
+
 /*
  * Copyright (C) 2018 bzt (bztsrc@github)
  *
@@ -25,3 +28,5 @@
 
 unsigned int sprintf(char *dst, char* fmt, ...);
 unsigned int vsprintf(char *dst,char* fmt, __builtin_va_list args);
+
+#endif

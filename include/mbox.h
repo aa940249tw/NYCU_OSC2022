@@ -1,3 +1,6 @@
+#ifndef __MBOX_H__
+#define __MBOX_H__
+
 extern volatile unsigned int mailbox[36];
 
 #define MBOX_REQUEST    0
@@ -28,3 +31,5 @@ extern volatile unsigned int mailbox[36];
 int mbox_call(unsigned char ch);
 void get_revision();
 void get_address();
+
+#endif
