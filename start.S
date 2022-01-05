@@ -3,6 +3,9 @@
 .global _start
 
 _start:
+    // save devicetree address to specified address
+    ldr     x1, =__devicetree
+    str     x0, [x1]
     // read cpu id, stop slave cores
     mrs     x1, mpidr_el1
     and     x1, x1, #3

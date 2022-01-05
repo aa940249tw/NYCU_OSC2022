@@ -22,7 +22,7 @@ struct cpio_newc_header {
 	char	c_check[8];
 };
 
-void cpio_ls();
-void cpio_cat();
+void cpio_ls(unsigned long);
+void cpio_cat(unsigned long);
 
 #endif

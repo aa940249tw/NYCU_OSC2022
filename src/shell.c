@@ -4,6 +4,7 @@
 #include "uart_boot.h"
 #include "utils.h"
 #include "__cpio.h"
+#include "devicetree.h"
 
 void shell_init() {
 	uart_init();
@@ -22,8 +23,9 @@ void shell_select(char *cmd) {
 		uart_puts("reboot:\t\tReboot rpi3.\n");
 		uart_puts("status:\t\tGet the hardware’s information.\n");
 		uart_puts("load_img:\tLoad a new kernel image through uart.\n");
-		uart_puts("ls:\tList cpio archive files.\n");
-		uart_puts("cat:\tEnter a filename to get file content.\n");
+		uart_puts("ls:\t\tList cpio archive files.\n");
+		uart_puts("cat:\t\tEnter a filename to get file content.\n");
+		uart_puts("dtb:\t\tGet devicetree info.\n");
 	}
 	else if(!strcmp(cmd, "hello")) {
 		uart_puts("\nHello World!\n");
@@ -43,11 +45,17 @@ void shell_select(char *cmd) {
 	}
 	else if(!strcmp(cmd, "ls")) {
 		printf("\n");
-		cpio_ls();
+		unsigned long cpio_address = get_initramfs("linux,initrd-start");
+		printf("Found cpio file at address %x\n", cpio_address);
+		cpio_ls(cpio_address);
 	}
 	else if(!strcmp(cmd, "cat")) {
 		printf(" ");
-		cpio_cat();
+		cpio_cat(get_initramfs("linux,initrd-start"));
+	}
+	else if(!strcmp(cmd, "dtb")) {
+		printf("\n");
+		dtb_info();
 	}
 	else if(cmd[0] != '\0') uart_puts("\nshell: command not found.\n");
 }

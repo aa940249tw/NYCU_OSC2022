@@ -8,8 +8,8 @@ unsigned long align(unsigned long addr, unsigned long align_size) {
     else return addr + (align_size - tmp);
 }
 
-void cpio_ls() {
-    struct cpio_newc_header* header = (struct cpio_newc_header*)CPIO_ADDR;
+void cpio_ls(unsigned long addr) {
+    struct cpio_newc_header* header = (struct cpio_newc_header*)(addr == 0 ? CPIO_ADDR : addr);
     while(1) {
         unsigned long file_size = hex_to_int(header->c_filesize, 8);
         unsigned long name_size = hex_to_int(header->c_namesize, 8);
@@ -20,7 +20,7 @@ void cpio_ls() {
     }
 }
 
-void cpio_cat() {
+void cpio_cat(unsigned long addr) {
     char cmd[20];
 	char c;
 	int idx = 0, end = 0;
@@ -64,7 +64,7 @@ void cpio_cat() {
 		printf("\r# cat %s \r\e[%dC", cmd, idx + 6);
 	}
 
-    struct cpio_newc_header* header = (struct cpio_newc_header*)CPIO_ADDR;
+    struct cpio_newc_header* header = (struct cpio_newc_header*)(addr == 0 ? CPIO_ADDR : addr);
     int flag = 0;
     unsigned long file_size, name_size;
     while(1) {
