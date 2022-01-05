@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import numpy as np
+import sys
 from serial import Serial
 from tqdm import tqdm
 from time import sleep
@@ -11,7 +12,7 @@ def reset_serial(s):
     s.flushOutput()
 
 def send_img():
-    with open("/home/aa940249tw/nctu/OSDI/LAB_1/kernel8.img", "rb") as imgfile:
+    with open(sys.argv[1], "rb") as imgfile:
         with Serial('/dev/ttyUSB0', 115200) as ser:
             data = imgfile.read()
             data_size = len(data)
@@ -35,5 +36,6 @@ def send_img():
             
             reset_serial(ser)
 if __name__ == "__main__":
-    send_img()
+    if len(sys.argv) < 2: sys.stdout.write('missing file name\n')
+    else: send_img()
     
