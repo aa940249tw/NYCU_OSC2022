@@ -80,7 +80,9 @@ void cpio_cat(unsigned long addr) {
     }
     if(flag) {
         char *file_content = (char *)((char *)header + align(CPIO_SIZE + name_size, 4));
-        printf("\n%s\n", file_content);
+        printf("\n");
+        for(int i = 0; i < file_size; i++) printf("%c", *(file_content + i));
+        printf("\n");
     }
     else printf("\nError: No such file found!!\n");
 }

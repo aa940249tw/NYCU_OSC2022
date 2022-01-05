@@ -7,7 +7,7 @@ SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 CFLAGS = -Wall -O2 -g -ffreestanding -nostdinc -nostdlib -nostartfiles -I include
 
-all: clean kernel8.img
+all: clean cpio kernel8.img
 
 start.o: start.S
 	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -c start.S -o start.o
@@ -18,6 +18,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 kernel8.img: start.o $(OBJS)
 	$(TOOLCHAIN_PREFIX)ld -nostdlib -nostartfiles start.o $(OBJS) -T linker.ld -o kernel8.elf
 	$(TOOLCHAIN_PREFIX)objcopy -O binary kernel8.elf kernel8.img
+
+cpio:
+	mkdir -p rootfs
+	cd rootfs && find . | cpio -o -H newc > ../initramfs.cpio
 
 clean:
 	rm kernel8.img kernel8.elf *.o >/dev/null 2>/dev/null || true
