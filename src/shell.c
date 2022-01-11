@@ -18,14 +18,16 @@ void shell_select(char *cmd) {
 		return;
 	}
 	else if(!strcmp(cmd, "help")) {
-		uart_puts("\nhelp:\t\tPrint this list.\n");
-		uart_puts("hello:\t\tPrint \"Hello World!\".\n");
-		uart_puts("reboot:\t\tReboot rpi3.\n");
-		uart_puts("status:\t\tGet the hardware’s information.\n");
-		uart_puts("load_img:\tLoad a new kernel image through uart.\n");
-		uart_puts("ls:\t\tList cpio archive files.\n");
-		uart_puts("cat:\t\tEnter a filename to get file content.\n");
-		uart_puts("dtb:\t\tGet devicetree info.\n");
+		uart_puts("\n\n");
+		uart_puts("    Commands:\n");
+		uart_puts("\thelp:\t\tPrint this list.\n");
+		uart_puts("\thello:\t\tPrint \"Hello World!\".\n");
+		uart_puts("\treboot:\t\tReboot rpi3.\n");
+		uart_puts("\tstatus:\t\tGet the hardware’s information.\n");
+		uart_puts("\tload_img:\tLoad a new kernel image through uart.\n");
+		uart_puts("\tls:\t\tList cpio archive files.\n");
+		uart_puts("\tcat:\t\tEnter a filename to get file content.\n");
+		uart_puts("\tdtb:\t\tGet devicetree info.\n\n");
 	}
 	else if(!strcmp(cmd, "hello")) {
 		uart_puts("\nHello World!\n");
