@@ -1,7 +1,7 @@
 #include "uart_boot.h"
 #include "uart.h"
 
-extern unsigned char __end, __start;
+extern unsigned char __end, __start, __devicetree;
 
 void reallocate() {
     unsigned char *start_address = (unsigned char *)&__start;
@@ -20,6 +20,8 @@ void reallocate() {
 }
 
 void load_img() {
+    unsigned char **dtb_address = (unsigned char **)&__devicetree;
+    printf("%x\n", *dtb_address);
     printf("Now trying to connect to uart.\n");
     int img_size = 0;
 
@@ -37,7 +39,6 @@ void load_img() {
     }
     
     printf("Kernel Image has loaded successfully!!!\n");
-    void (*start_new_kernel)() = (void *)KERNEL_ADDR;
-    start_new_kernel();
-    
+    void (*start_new_kernel)(unsigned long) = (void *)KERNEL_ADDR;
+    start_new_kernel((unsigned long)*dtb_address);
 }
