@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "__cpio.h"
 #include "devicetree.h"
+#include "exception.h"
 
 void shell_init() {
 	uart_init();
@@ -19,7 +20,7 @@ void shell_select(char *cmd) {
 	}
 	else if(!strcmp(cmd, "help")) {
 		uart_puts("\n\n");
-		uart_puts("    Commands:\n");
+		uart_puts("\tCommands:\n");
 		uart_puts("\thelp:\t\tPrint this list.\n");
 		uart_puts("\thello:\t\tPrint \"Hello World!\".\n");
 		uart_puts("\treboot:\t\tReboot rpi3.\n");
@@ -58,6 +59,10 @@ void shell_select(char *cmd) {
 	else if(!strcmp(cmd, "dtb")) {
 		printf("\n");
 		dtb_info();
+	}
+	else if(!strcmp(cmd, "die")) {
+		printf("\n");
+		_exception_simulate();
 	}
 	else if(cmd[0] != '\0') uart_puts("\nshell: command not found.\n");
 }
