@@ -26,7 +26,7 @@ cpio:
 	cd rootfs && find . | cpio -o -H newc > ../initramfs.cpio
 
 clean:
-	rm kernel8.img kernel8.elf *.o >/dev/null 2>/dev/null || true
+	rm *.cpio kernel8.img kernel8.elf *.o >/dev/null 2>/dev/null || true
 	rm $(OBJ_DIR)/*.o >/dev/null 2>/dev/null || true
 
 $(OBJ_DIR):
