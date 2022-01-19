@@ -48,8 +48,9 @@ _from_el2_to_el1:
     movk    x2, #0x30d0, lsl #16
     msr     sctlr_el1, x2
     // make el0, el1 can use Floating point and Advanced SIMD
-    ldr     x1, =(0b11 << 20)
-    msr     CPACR_EL1, x1
+    mrs     x0, cpacr_el1
+    orr     x0, x0, #(3 << 20)
+    msr     cpacr_el1, x0
     // set_exception_vector_table
     bl      _set_exception_vector_table
     // change execution level to EL1
@@ -66,7 +67,6 @@ _from_el1_to_el0:
     msr     spsr_el1, x0
     adr     x2, _jump_main
     msr     elr_el1, x2
-
     eret
 
 _jump_main:

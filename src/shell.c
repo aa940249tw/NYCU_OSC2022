@@ -6,6 +6,7 @@
 #include "__cpio.h"
 #include "devicetree.h"
 #include "exception.h"
+#include "timer.h"
 
 void shell_init() {
 	uart_init();
@@ -28,7 +29,8 @@ void shell_select(char *cmd) {
 		uart_puts("\tload_img:\tLoad a new kernel image through uart.\n");
 		uart_puts("\tls:\t\tList cpio archive files.\n");
 		uart_puts("\tcat:\t\tEnter a filename to get file content.\n");
-		uart_puts("\tdtb:\t\tGet devicetree info.\n\n");
+		uart_puts("\tdtb:\t\tGet devicetree info.\n");
+		uart_puts("\tdie:\t\tTry Exception.\n\n");
 	}
 	else if(!strcmp(cmd, "hello")) {
 		uart_puts("\nHello World!\n");
@@ -63,6 +65,10 @@ void shell_select(char *cmd) {
 	else if(!strcmp(cmd, "die")) {
 		printf("\n");
 		_exception_simulate();
+	}
+	else if(!strcmp(cmd, "time")) {
+		printf("\n");
+		svc_timer();
 	}
 	else if(cmd[0] != '\0') uart_puts("\nshell: command not found.\n");
 }

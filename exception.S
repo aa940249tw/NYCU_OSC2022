@@ -68,8 +68,7 @@ exception_vector_table:
     .align 7
     b       serror_sp_elx
     .align 7
-
-    b       synchronous_el64
+    b       _svc_handler
     .align 7
     b       irq_el64
     .align 7
@@ -151,15 +150,22 @@ serror_sp_elx:
     mov     x0, #7
     b       exception_handler
 
-synchronous_el64:
+.global _svc_handler
+_svc_handler:
     save_all
-    mov     x0, #8
-    b       exception_handler
+    mov     x0, #8 
+    bl      _get_exception_info
+    bl      svc_handler
+    load_all
+    eret
 
 irq_el64:
     save_all
     mov     x0, #9
-    b       exception_handler
+    bl      _get_exception_info
+    bl      core_timer_handler
+    load_all
+    eret
 
 fiq_el64:
     save_all
