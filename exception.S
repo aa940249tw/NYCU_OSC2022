@@ -161,9 +161,7 @@ _svc_handler:
 
 irq_el64:
     save_all
-    mov     x0, #9
-    bl      _get_exception_info
-    bl      core_timer_handler
+    bl      irq_handler
     load_all
     eret
 

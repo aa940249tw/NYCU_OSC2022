@@ -3,7 +3,7 @@
 #define CMD_LEN 128
 
 void main() {
-	shell_init();	
+	shell_init();
 	printf( "Hello %s!\n"
             "This is character '%c', a hex number: %x and in decimal: %d\n"
             "Padding test: '%8x', '%8d'\n",
