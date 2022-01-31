@@ -70,6 +70,24 @@ void shell_select(char *cmd) {
 		printf("\n");
 		svc_timer();
 	}
+	else if(!strncmp(cmd, "settimeout", 10)) {
+		printf("\n");
+		int i, j;
+		int timeouts = 0;
+    	for(i = 11; i < strlen(cmd); i++) {
+      		if(cmd[i] == ' ') {
+        		i++;
+        		break;
+     	 	}
+    	}
+		for(j = i; j < strlen(cmd); j++) {
+			timeouts *= 10;
+			timeouts += (cmd[j] - '0');
+		}
+		cmd[i-1] = '\0';
+		add_timer((void *)core_timer_print_message_callback, (unsigned int)timeouts, cmd + 11, (unsigned int)strlen(cmd + 11));
+		printf("Timer added.\n");
+	}
 	else if(cmd[0] != '\0') uart_puts("\nshell: command not found.\n");
 }
 

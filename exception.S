@@ -136,9 +136,12 @@ synchronous_sp_elx:
     b       exception_handler
 
 irq_sp_elx:
+    msr     DAIFSet, 0xf
     save_all
-    mov     x0, #5
-    b       exception_handler
+    bl      irq_handler
+    load_all
+    msr     DAIFClr, 0xf
+    eret
 
 fiq_sp_elx:
     save_all
@@ -160,11 +163,13 @@ _svc_handler:
     eret
 
 irq_el64:
+    msr     DAIFSet, 0xf
     save_all
     bl      irq_handler
     load_all
+    msr     DAIFClr, 0xf
     eret
-
+    
 fiq_el64:
     save_all
     mov     x0, #10

@@ -35,7 +35,7 @@ void uart_init()
     *GPPUDCLK0 = 0;         // Flush GPIO setup
     *AUX_MU_CNTL = 3;       // Enable Tx, Rx
 
-    *AUX_MU_IER = 1;
+    //*AUX_MU_IER = 1;
     // Initiallize read write buffer
     initQueue(&readbuf);
     initQueue(&writebuf);
@@ -74,8 +74,8 @@ void uart_handler() {
             char c = (char)(*AUX_MU_IO);
             pushQueue(&readbuf, c);
         }
-        uart_puts("rx\n");
-        //disable_recieve_interrupt();
+        //uart_puts("rx\n");
+        disable_recieve_interrupt();
     }
     // transmit holding register empty
     else if(*AUX_MU_IIR & 2) {
@@ -105,7 +105,7 @@ void uart_send(unsigned int c) {
     // write
     *AUX_MU_IO = c;
 }
-/*
+
 char uart_getc() {
     // Check data ready field, wait until something is in the buffer
     do {
@@ -116,17 +116,18 @@ char uart_getc() {
     // Convert carrige return to newline
     return r == '\r' ? '\n' : r;
 }
-*/
 
+/*
 char uart_getc() {
     // Check data ready field, wait until something is in the buffer
     while(isEmpty(&readbuf)) asm volatile("nop");
     // read
     char r = popQueue(&readbuf);
+    set_recieve_interrupt();
     // Convert carrige return to newline
     return r == '\r' ? '\n' : r;
 }
-
+*/
 char uart_getc_raw() {
     char r;
     // Check data ready field, wait until something is in the buffer
