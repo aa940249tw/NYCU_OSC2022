@@ -53,7 +53,6 @@ _from_el2_to_el1:
     msr     cpacr_el1, x0
     // set_exception_vector_table
     bl      _set_exception_vector_table
-    #bl      core_timer_enable
     // change execution level to EL1
     mov     x2, #0x3c5
     msr     spsr_el2, x2
@@ -65,10 +64,10 @@ _from_el1_to_el0:
     ldr     x1, =_start
     msr     sp_el0, x1
     mov     x2, 0
-    #msr     spsr_el1, x2
-    #adr     x2, _jump_main
-    #msr     elr_el1, x2
-    #eret
+    //msr     spsr_el1, x2
+    //adr     x2, _jump_main
+    //msr     elr_el1, x2
+    //eret
     msr     DAIFClr, 0xf
 
 _jump_main:
