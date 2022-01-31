@@ -20,50 +20,7 @@ void cpio_ls(unsigned long addr) {
     }
 }
 
-void cpio_cat(unsigned long addr) {
-    char cmd[20];
-	char c;
-	int idx = 0, end = 0;
-	cmd[0] = '\0';
-	while((c = uart_getc()) != '\n') {
-		if(c == 8 || c == 127) {
-			if (idx > 0) {
-                idx--;
-                for (int i = idx; i < end; i++) {
-                    cmd[i] = cmd[i + 1];
-                }
-                cmd[--end] = '\0';
-            }
-		}
-		else if (c == 3) {
-            cmd[0] = '\0';
-            break;
-        }
-        else if(c == 27) {
-        	c = uart_getc();
-        	c = uart_getc();
-        	switch (c) {
-        	case 'C' :
-        		if (idx < end) idx++;
-        		break;
-        	case 'D' :
-        		if (idx > 0) idx--;
-        		break;
-        	default : uart_flush();
-        	}
-        }
-		else {
-			if (idx < end) {
-                for (int i = end; i > idx; i--) {
-                    cmd[i] = cmd[i - 1];
-                }
-            }
-			cmd[idx++] = c;
-            cmd[++end] = '\0';
-		}
-		printf("\r# cat %s \r\e[%dC", cmd, idx + 6);
-	}
-
+void cpio_cat(unsigned long addr, char *file) {
     struct cpio_newc_header* header = (struct cpio_newc_header*)(addr == 0 ? CPIO_ADDR : addr);
     int flag = 0;
     unsigned long file_size, name_size;
@@ -72,7 +29,7 @@ void cpio_cat(unsigned long addr) {
         name_size = hex_to_int(header->c_namesize, 8);
         char *pathname = (char *)((char *)header + CPIO_SIZE);
         if(!strcmp(pathname, "TRAILER!!!")) break;
-        else if(!strcmp(pathname, cmd)) {
+        else if(!strcmp(pathname, file)) {
             flag = 1;
             break;
         }

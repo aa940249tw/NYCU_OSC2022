@@ -49,9 +49,9 @@ void shell_select(char *cmd) {
 		printf("Found cpio file at address %x\n", cpio_address);
 		cpio_ls(cpio_address);
 	}
-	else if(!strcmp(cmd, "cat")) {
-		printf(" ");
-		cpio_cat(get_initramfs("linux,initrd-start"));
+	else if(!strncmp(cmd, "cat", 3)) {
+		printf("\n");
+		cpio_cat(get_initramfs("linux,initrd-start"), cmd + 4);
 	}
 	else if(!strcmp(cmd, "dtb")) {
 		printf("\n");

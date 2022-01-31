@@ -23,6 +23,6 @@ struct cpio_newc_header {
 };
 
 void cpio_ls(unsigned long);
-void cpio_cat(unsigned long);
+void cpio_cat(unsigned long, char *);
 
 #endif
