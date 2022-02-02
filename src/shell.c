@@ -30,7 +30,8 @@ void shell_select(char *cmd) {
 		uart_puts("\tls:\t\tList cpio archive files.\n");
 		uart_puts("\tcat:\t\tEnter a filename to get file content.\n");
 		uart_puts("\tdtb:\t\tGet devicetree info.\n");
-		uart_puts("\tdie:\t\tTry Exception.\n\n");
+		uart_puts("\tdie:\t\tTry Exception.\n");
+		uart_puts("\tsettimeout [string] [time(sec)]: Set timeout to print message.\n\n");
 	}
 	else if(!strcmp(cmd, "hello")) {
 		uart_puts("\nHello World!\n");

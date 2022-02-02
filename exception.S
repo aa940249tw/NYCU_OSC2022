@@ -68,7 +68,7 @@ exception_vector_table:
     .align 7
     b       serror_sp_elx
     .align 7
-    b       _svc_handler
+    b       synchronous_sp_el64
     .align 7
     b       irq_el64
     .align 7
@@ -133,11 +133,16 @@ serror_sp_el0:
 synchronous_sp_elx:
     save_all
     mov     x0, #4
-    b       exception_handler
+    bl      _get_exception_info
+    bl      svc_handler
+    load_all
+    eret
 
 irq_sp_elx:
     msr     DAIFSet, 0xf
     save_all
+    mov     x0, #5
+    bl      _get_exception_info
     bl      irq_handler
     load_all
     msr     DAIFClr, 0xf
@@ -153,8 +158,7 @@ serror_sp_elx:
     mov     x0, #7
     b       exception_handler
 
-.global _svc_handler
-_svc_handler:
+synchronous_sp_el64:
     save_all
     mov     x0, #8 
     bl      _get_exception_info
@@ -165,6 +169,8 @@ _svc_handler:
 irq_el64:
     msr     DAIFSet, 0xf
     save_all
+    mov     x0, #9
+    bl      _get_exception_info
     bl      irq_handler
     load_all
     msr     DAIFClr, 0xf
