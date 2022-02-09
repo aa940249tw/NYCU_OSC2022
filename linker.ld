@@ -19,5 +19,4 @@ SECTIONS
 }
 __bss_size = (__bss_end - __bss_start)>>3;
 
-__allocator_init = 0x1000000;
 __devicetree = 0x500000;

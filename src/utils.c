@@ -1,5 +1,6 @@
-extern unsigned char __allocator_init;
-unsigned char *allocator_address = (unsigned char *)&__allocator_init;
+#include "utils.h"
+
+unsigned char *allocator_address = (unsigned char *)allocator_init;
 
 int strcmp(const char *X, const char *Y) {
     while (*X) {
@@ -66,4 +67,18 @@ int strlen(const char* s){
         len++;
     }
     return len;
+}
+
+void memset(char *buf, int size, char c) {
+    for(int i = 0; i < size; i++) {
+        buf[i] = c;
+    }
+}
+
+void* memcpy (void *dest, const void *src, int len) {
+    char *d = dest;
+    const char *s = src;
+    while (len--)
+        *d++ = *s++;
+    return dest;
 }

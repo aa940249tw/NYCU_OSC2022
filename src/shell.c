@@ -7,6 +7,7 @@
 #include "devicetree.h"
 #include "exception.h"
 #include "timer.h"
+#include "mm.h"
 
 void shell_init() {
 	uart_init();
@@ -26,7 +27,7 @@ void shell_select(char *cmd) {
 		uart_puts("\thello:\t\tPrint \"Hello World!\".\n");
 		uart_puts("\treboot:\t\tReboot rpi3.\n");
 		uart_puts("\tstatus:\t\tGet the hardware’s information.\n");
-		uart_puts("\tload_img:\tLoad a new kernel image through uart.\n");
+		uart_puts("\tload_img:\tLoad a new kernel imaged->page_addr + j * m->size through uart.\n");
 		uart_puts("\tls:\t\tList cpio archive files.\n");
 		uart_puts("\tcat:\t\tEnter a filename to get file content.\n");
 		uart_puts("\tdtb:\t\tGet devicetree info.\n");
@@ -89,6 +90,16 @@ void shell_select(char *cmd) {
 		cmd[i-1] = '\0';
 		add_timer((void *)core_timer_print_message_callback, (unsigned int)timeouts, cmd + 11, (unsigned int)strlen(cmd + 11));
 		printf("Timer added.\n");
+	}
+	else if(!strncmp(cmd, "bd", 2)) {
+		printf("\n");
+		int num = cmd[3] - '0';
+		void *p = dynamic_allocator(num);
+		printf("Get Address: 0x%x\n", p);
+		//void *q = alloc_pages(num+5);
+		//printf("Get Address: 0x%x\n", q);
+		if (p) kfree(p);
+		//if (q) free_pages(q);
 	}
 	else if(cmd[0] != '\0') uart_puts("\nshell: command not found.\n");
 }
