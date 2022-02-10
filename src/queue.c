@@ -1,9 +1,12 @@
 #include "queue.h"
+#include "utils.h"
 
-void initQueue(struct Queue *queue) {
-    queue->front = 0;
-    queue->rear = 0;
-    queue->size = MAX_SIZE;
+struct Queue *initQueue() {
+    struct Queue* q = (struct Queue*)simple_malloc((unsigned long)sizeof(struct Queue));
+    q->front = 0;
+    q->rear = 0;
+    q->size = MAX_SIZE;
+    return q;
 }
 
 int isFull(struct Queue *queue) {

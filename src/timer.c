@@ -7,7 +7,7 @@ void timer_init() {
 }
 
 void core_timer_print_message_callback(struct core_timeout *q) {
-    printf("Message: %s\n", q->buf);
+    printf("Message: %s\t", q->buf);
     get_coretime();
     uart_puts("\r# ");
 }

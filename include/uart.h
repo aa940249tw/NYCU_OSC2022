@@ -1,7 +1,6 @@
 #ifndef __UART_H__
 #define __UART_H__
 
-#include "queue.h"
 #define UART_BUFFER_MAX 1024
 
 /* Auxilary mini UART registers */
@@ -30,5 +29,4 @@ void uart_handler();
 void set_uart_irq_enable();
 void disable_uart_irq_enable();
 
-struct Queue readbuf, writebuf;
 #endif

@@ -69,7 +69,8 @@ void shell_select(char *cmd) {
 	}
 	else if(!strcmp(cmd, "time")) {
 		printf("\n");
-		svc_timer();
+		//svc_timer();
+		asm volatile("svc 1");
 	}
 	else if(!strncmp(cmd, "settimeout", 10)) {
 		printf("\n");

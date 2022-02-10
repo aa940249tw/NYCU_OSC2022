@@ -2,9 +2,11 @@
 #include "sprintf.h"
 #include "uart.h"
 #include "irq.h"
+#include "queue.h"
 
 extern volatile unsigned char __end;
 
+struct Queue *readbuf, *writebuf;
 void uart_init()
 {
     register unsigned int r;
@@ -37,8 +39,8 @@ void uart_init()
 
     //*AUX_MU_IER = 1;
     // Initiallize read write buffer
-    initQueue(&readbuf);
-    initQueue(&writebuf);
+    readbuf = initQueue();
+    writebuf = initQueue();
     set_uart_irq_enable();
 }
 
@@ -72,30 +74,23 @@ void uart_handler() {
     if(*AUX_MU_IIR & 4) {
         while(*AUX_MU_LSR & 0x01) {
             char c = (char)(*AUX_MU_IO);
-            pushQueue(&readbuf, c);
+            pushQueue(readbuf, c);
         }
-        //uart_puts("rx\n");
         disable_recieve_interrupt();
     }
     // transmit holding register empty
     else if(*AUX_MU_IIR & 2) {
-        while(!isEmpty(&writebuf)) {
+        while(!isEmpty(writebuf)) {
             while(!(*AUX_MU_LSR & 0x20)) {
                 asm volatile("nop");
             }
-            *AUX_MU_IO = popQueue(&writebuf);
+            *AUX_MU_IO = popQueue(writebuf);
         }
-        uart_puts("tx\n");
         disable_transmit_interrupt();
     }
     set_uart_irq_enable();
 }
-/*
-void uart_send(unsigned int c) {
-    pushQueue(&writebuf, c);
-    set_transmit_interrupt();
-}
-*/
+
 
 void uart_send(unsigned int c) {
 	// Wait until we can send, check transmitter idle field
@@ -117,12 +112,18 @@ char uart_getc() {
     return r == '\r' ? '\n' : r;
 }
 
+// Async UART
 /*
+void uart_send(unsigned int c) {
+    pushQueue(writebuf, c);
+    set_transmit_interrupt();
+}
+
 char uart_getc() {
     // Check data ready field, wait until something is in the buffer
-    while(isEmpty(&readbuf)) asm volatile("nop");
+    while(isEmpty(readbuf)) asm volatile("nop");
     // read
-    char r = popQueue(&readbuf);
+    char r = popQueue(readbuf);
     set_recieve_interrupt();
     // Convert carrige return to newline
     return r == '\r' ? '\n' : r;

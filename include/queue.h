@@ -10,7 +10,7 @@ struct Queue
     char buffer[MAX_SIZE];
 };
 
-void initQueue(struct Queue *);
+struct Queue *initQueue();
 int isFull(struct Queue *);
 int isEmpty(struct Queue *);
 void pushQueue(struct Queue *, char);
