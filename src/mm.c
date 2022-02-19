@@ -1,5 +1,6 @@
 #include "mm.h"
 #include "uart.h"
+#include "devicetree.h"
 
 struct BUDDY_SYSTEM buddy[MAX_BUDDY_ORDER + 1];
 struct PAGE_FRAME page_frame[PAGE_NUM];
@@ -101,24 +102,6 @@ struct PAGE_FRAME *get_pageframe(int order, int target_order) {
     return release_redundant_block((struct PAGE_FRAME *)tmp, target_order);
 }
 
-void buddy_init() {
-    for(int i = 0; i <= MAX_BUDDY_ORDER; i++) {
-        buddy[i].head.next = &buddy[i].head;
-        buddy[i].head.prev = &buddy[i].head;
-        buddy[i].pg_free = 0;
-    }
-
-    page_frame[0].used = AVAL;
-    page_frame[0].order = MAX_BUDDY_ORDER;
-    for(int i = 1; i < PAGE_NUM; i++) {
-        page_frame[i].order = MAX_BUDDY_ORDER;
-        page_frame[i].used = F;
-        page_frame[i].list.next = NULL;
-        page_frame[i].list.prev = NULL;
-    }
-    insert_pageframe(&(buddy[MAX_BUDDY_ORDER]), &(page_frame[0].list));
-}
-
 void merge_page(struct PAGE_FRAME *p, int page_id) {
     int buddy_page_id = page_id ^ (1 << p->order);
     struct PAGE_FRAME *buddy_page = &page_frame[page_id ^ (1 << p->order)];
@@ -138,6 +121,37 @@ void merge_page(struct PAGE_FRAME *p, int page_id) {
         memset_pageframe(p+1, (1 << p->order) - 1, p->order, F);
         insert_pageframe(&(buddy[p->order]), &(p->list));
     }
+}
+
+void buddy_init() {
+    for(int i = 0; i <= MAX_BUDDY_ORDER; i++) {
+        buddy[i].head.next = &buddy[i].head;
+        buddy[i].head.prev = &buddy[i].head;
+        buddy[i].pg_free = 0;
+    }
+    /*  No reserve startup
+    page_frame[0].used = AVAL;
+    page_frame[0].order = MAX_BUDDY_ORDER;
+    for(int i = 1; i < PAGE_NUM; i++) {
+        page_frame[i].order = MAX_BUDDY_ORDER;
+        page_frame[i].used = F;
+        page_frame[i].list.next = NULL;
+        page_frame[i].list.prev = NULL;
+    }
+    insert_pageframe(&(buddy[MAX_BUDDY_ORDER]), &(page_frame[0].list));
+    */
+    memset_pageframe(page_frame, PAGE_NUM, 0, AVAL);
+    for(int i = 0; i < PAGE_NUM; i++) insert_pageframe(&(buddy[0]), &(page_frame[i].list));
+    //  reserve CPIO
+    mem_reserve(get_initramfs("linux,initrd-start"), 11000);
+    //  debug use
+    mem_reserve(0x10004000, 11000);
+    for(int i = 0; i < PAGE_NUM; i++) {
+        if(page_frame[i].order != 0 || page_frame[i].used != AVAL) continue;
+        remove_pageframe(&(buddy[0]), &(page_frame[i].list));
+        merge_page(&page_frame[i], i);
+    }
+    buddy_info();
 }
 
 void dynamic_init() {
@@ -206,7 +220,7 @@ void free_pages(void *addr) {
     int page_id = ((unsigned long)addr - (unsigned long)PAGE_INIT) / PAGE_SIZE;
     struct PAGE_FRAME *p = &page_frame[page_id];
     p->used = AVAL;
-    /* For Debug Only
+    /*  For Debug Only
     ((struct PAGE_LIST *)p)->prev->next = ((struct PAGE_LIST *)p)->next;
     ((struct PAGE_LIST *)p)->next->prev = ((struct PAGE_LIST *)p)->prev;
     ((struct PAGE_LIST *)p)->prev = NULL;
@@ -254,4 +268,15 @@ void kfree(void *addr) {
     }
     printf("Free Buddy.\n");
     free_pages(addr);
+}
+
+void mem_reserve(unsigned long addr, int size) {
+    int num = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+    int page_id = ((unsigned long)addr - (unsigned long)PAGE_INIT) / PAGE_SIZE;
+    if(page_id < 0) return;
+    for(int i = 0; i < num; i++) {
+        if(page_id + i >= PAGE_NUM) return;
+        page_frame[page_id + i].used = USED;
+        remove_pageframe(&(buddy[page_frame[page_id + i].order]), (struct PAGE_LIST *)&page_frame[page_id + i]);
+    }
 }

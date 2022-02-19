@@ -46,5 +46,6 @@ void *dynamic_allocator(int);
 void dynamic_free(struct DYNAMIC_PAGE *, void *);
 void *kmalloc(int);
 void kfree(void *);
+void mem_reserve(unsigned long, int);
 
 #endif
