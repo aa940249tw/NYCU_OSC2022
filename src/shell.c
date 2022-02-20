@@ -27,7 +27,7 @@ void shell_select(char *cmd) {
 		uart_puts("\thello:\t\tPrint \"Hello World!\".\n");
 		uart_puts("\treboot:\t\tReboot rpi3.\n");
 		uart_puts("\tstatus:\t\tGet the hardware’s information.\n");
-		uart_puts("\tload_img:\tLoad a new kernel imaged->page_addr + j * m->size through uart.\n");
+		uart_puts("\tload_img:\tLoad a new kernel image through uart.\n");
 		uart_puts("\tls:\t\tList cpio archive files.\n");
 		uart_puts("\tcat:\t\tEnter a filename to get file content.\n");
 		uart_puts("\tdtb:\t\tGet devicetree info.\n");
