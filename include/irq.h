@@ -7,4 +7,14 @@
 #define IRQ_DISABLE_1           ((volatile unsigned int*)(IRQ_BASE + 0x21C))
 #define AUX_INT (1 << 29)
 
+struct irq_task {
+    int priority;
+    int preempt;
+    void (*task)(void *);
+    void *data;
+    struct irq_task *list;
+};
+
+void add_task(void (*)(void *), void *, int);
+
 #endif
