@@ -57,7 +57,7 @@ void get_revision() {
     	uart_puts("\nUnable to query serial!\n");
 }
 
-void get_address() {
+unsigned int get_address() {
 	mailbox[0] = 8 * 4; // buffer size in bytes
   	mailbox[1] = REQUEST_CODE;
   	// tags begin
@@ -74,7 +74,9 @@ void get_address() {
         uart_puts("\nMy ARM memory size is: ");
         uart_hex(mailbox[6]);
         uart_puts("\n");
+        return mailbox[6];
     } 
     else	
     	uart_puts("\nUnable to query serial!\n");
+    return 0;
 }

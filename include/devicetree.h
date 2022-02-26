@@ -8,6 +8,8 @@
 #define FDT_NOP         0x00000004
 #define FDT_END         0x00000009
 
+extern unsigned char __devicetree;
+
 struct fdt_header {
     unsigned int magic;
     unsigned int totalsize;
@@ -23,5 +25,4 @@ struct fdt_header {
 
 void dtb_info();
 unsigned long get_initramfs(char *);
-
 #endif

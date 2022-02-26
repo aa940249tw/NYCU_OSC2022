@@ -93,13 +93,7 @@ void shell_select(char *cmd) {
 	}
 	else if(!strncmp(cmd, "bd", 2)) {
 		printf("\n");
-		int num = cmd[3] - '0';
-		void *p = dynamic_allocator(num);
-		printf("Get Address: 0x%x\n", p);
-		//void *q = alloc_pages(num+5);
-		//printf("Get Address: 0x%x\n", q);
-		if (p) kfree(p);
-		//if (q) free_pages(q);
+		buddy_test();
 	}
 	else if(cmd[0] != '\0') uart_puts("\nshell: command not found.\n");
 }

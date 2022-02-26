@@ -30,6 +30,6 @@ extern volatile unsigned int mailbox[36];
 
 int mbox_call(unsigned char ch);
 void get_revision();
-void get_address();
+unsigned int get_address();
 
 #endif

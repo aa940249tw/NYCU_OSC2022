@@ -4,7 +4,7 @@
 #include "utils.h"
 
 #define PAGE_SIZE           4096
-#define MAX_BUDDY_ORDER     8   // 4KB ~ 1MB
+#define MAX_BUDDY_ORDER     15  // 4KB ~ 4MB
 #define PAGE_NUM            (1 << MAX_BUDDY_ORDER)
 #define PAGE_INIT           0x10000000
 #define MAX_DYNAMIC_PAGE    16
@@ -47,5 +47,6 @@ void dynamic_free(struct DYNAMIC_PAGE *, void *);
 void *kmalloc(int);
 void kfree(void *);
 void mem_reserve(unsigned long, int);
+void buddy_test();
 
 #endif

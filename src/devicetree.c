@@ -2,8 +2,6 @@
 #include "uart.h"
 #include "utils.h"
 
-extern unsigned char __devicetree;
-
 void dtb_info() {
     // get devicetree info
     struct fdt_header **header = (struct fdt_header **)&__devicetree;
@@ -35,7 +33,7 @@ void dtb_info() {
             case FDT_BEGIN_NODE:
                 printf("**********************************\n");
 
-                printf("Device name: %s\n", *cur_address);
+                printf("Device name: %s\n", cur_address);
                 cur_address += strlen((char *)cur_address);
                 if((unsigned long)cur_address % 4) cur_address +=  (4 - (unsigned long)cur_address % 4); 
                 break;

@@ -1,9 +1,11 @@
 #include "mm.h"
 #include "uart.h"
 #include "devicetree.h"
+#include "mbox.h"
+#include "utils.h"
 
 struct BUDDY_SYSTEM buddy[MAX_BUDDY_ORDER + 1];
-struct PAGE_FRAME page_frame[PAGE_NUM];
+struct PAGE_FRAME *page_frame;
 struct MEM_POOL mem_pool[MEMPOOL_TYPE];
 
 void memset_pageframe(struct PAGE_FRAME *buf, int size, int order, USAGE used) {
@@ -16,17 +18,18 @@ void memset_pageframe(struct PAGE_FRAME *buf, int size, int order, USAGE used) {
 void buddy_info() {
     printf("Printing Info of Buddy System ~\n");
     for(int i = 0; i <= MAX_BUDDY_ORDER; i++) {
-        printf("%d(%d): ", i, buddy[i].pg_free);
+        printf("%2d(%d): ", i, buddy[i].pg_free);
         struct PAGE_LIST *tmp = &(buddy[i].head);
         while(tmp->next != &(buddy[i].head)) {
-            printf("%3d{%d} -> ", ((struct PAGE_FRAME *)tmp->next - page_frame), ((struct PAGE_FRAME *)tmp->next)->used);
+            printf("%5d{%d} -> ", ((struct PAGE_FRAME *)tmp->next - page_frame), ((struct PAGE_FRAME *)tmp->next)->used);
             tmp = tmp->next;
         }
-        printf("  null\n");
+        printf("    null\n");
     }
 }
 
 void insert_pageframe(struct BUDDY_SYSTEM *bd, struct PAGE_LIST *pgl) {
+    /* // Debug only
     if(((struct PAGE_FRAME *)pgl)->used == USED || bd->head.next == &(bd->head)) {
         struct PAGE_LIST *last = bd->head.prev;
         pgl->next = &(bd->head);
@@ -43,6 +46,13 @@ void insert_pageframe(struct BUDDY_SYSTEM *bd, struct PAGE_LIST *pgl) {
         start->prev = pgl;
     }
     if(((struct PAGE_FRAME *)pgl)->used == AVAL) bd->pg_free++;
+    */
+    struct PAGE_LIST *last = bd->head.prev;
+    pgl->next = &(bd->head);
+    bd->head.prev = pgl;
+    pgl->prev = last;
+    last->next = pgl;
+    bd->pg_free++;
 }
 
 void remove_pageframe(struct BUDDY_SYSTEM *bd, struct PAGE_LIST *pgl) {
@@ -123,12 +133,14 @@ void merge_page(struct PAGE_FRAME *p, int page_id) {
     }
 }
 
+// No reserve buddy init
 void buddy_init() {
     for(int i = 0; i <= MAX_BUDDY_ORDER; i++) {
         buddy[i].head.next = &buddy[i].head;
         buddy[i].head.prev = &buddy[i].head;
         buddy[i].pg_free = 0;
     }
+    page_frame = (struct PAGE_FRAME *)simple_malloc((unsigned long)(sizeof(struct PAGE_FRAME) * PAGE_NUM));
     /*  No reserve startup
     page_frame[0].used = AVAL;
     page_frame[0].order = MAX_BUDDY_ORDER;
@@ -142,11 +154,116 @@ void buddy_init() {
     */
     memset_pageframe(page_frame, PAGE_NUM, 0, AVAL);
     for(int i = 0; i < PAGE_NUM; i++) insert_pageframe(&(buddy[0]), &(page_frame[i].list));
-    //  reserve CPIO
-    mem_reserve(get_initramfs("linux,initrd-start"), 11000);
     //  debug use
-    mem_reserve(0x10004000, 11000);
+    //  mem_reserve(0x10004000, 11000);
     for(int i = 0; i < PAGE_NUM; i++) {
+        if(page_frame[i].order != 0 || page_frame[i].used != AVAL) continue;
+        remove_pageframe(&(buddy[0]), &(page_frame[i].list));
+        merge_page(&page_frame[i], i);
+    }
+    buddy_info();
+}
+
+// Reserved buddy init
+void dtb_mem_reserve() {
+    struct fdt_header **header = (struct fdt_header **)&__devicetree;
+    unsigned int totalsize, off_dt_strings, off_dt_struct, size_dt_struct, off_mem_rsvmap;
+    totalsize        = convert_big_to_small_endian((*header)->totalsize);
+    off_dt_strings   = convert_big_to_small_endian((*header)->off_dt_strings);
+    off_dt_struct    = convert_big_to_small_endian((*header)->off_dt_struct);
+    size_dt_struct   = convert_big_to_small_endian((*header)->size_dt_struct);
+    off_mem_rsvmap   = __builtin_bswap32((*header)->off_mem_rsvmap);
+
+    // Get available memory block, insert to buddy system 
+    unsigned long struct_address = (unsigned long)*header + (unsigned long) off_dt_struct;
+    unsigned long struct_end = struct_address + (unsigned long) size_dt_struct;
+    unsigned char *cur_address = (unsigned char *)struct_address;
+    int found_mem_device = 0;
+    unsigned long start_addr, addr_size;
+    while((unsigned long)cur_address < struct_end) {
+        if(found_mem_device == 2) break;
+        unsigned int token = convert_big_to_small_endian(*((unsigned int *)cur_address));
+        cur_address += 4;
+        switch(token) {
+            case FDT_BEGIN_NODE:
+                if(!strncmp((char *)cur_address, "memory", 6)) found_mem_device = 1;
+                cur_address += strlen((char *)cur_address);
+                if((unsigned long)cur_address % 4) cur_address +=  (4 - (unsigned long)cur_address % 4); 
+                break;
+            case FDT_END_NODE:
+                break;
+            case FDT_PROP: 
+                ;
+                unsigned int len, nameoff;
+                len = convert_big_to_small_endian(*((unsigned int *)cur_address));
+                cur_address += 4;
+                nameoff = convert_big_to_small_endian(*((unsigned int *)cur_address));
+                cur_address += 4;
+                if(len > 0) {
+                    char *tmp = (char *)((unsigned long)*header + (unsigned long) off_dt_strings + nameoff);
+                    if(found_mem_device && !strncmp(tmp, "reg", 3)) {
+                        for(int i = 0; i < len; i += 8) {
+                            start_addr =  __builtin_bswap32(*((unsigned long *)cur_address));
+                            addr_size =  __builtin_bswap32(*((unsigned long *)(cur_address + 4)));
+                            printf("0x%x 0x%x\n", start_addr, addr_size);
+                            // Too Lazy to implement, just insert every available framepage into buddy system
+                        }
+                        found_mem_device = 2;
+                    }
+                    cur_address += len;
+                    if((unsigned long)cur_address % 4) cur_address +=  (4 - (unsigned long)cur_address % 4);
+                }
+                break;
+            case FDT_NOP:
+                break;
+            case FDT_END:
+                break;
+            default: break;
+        }
+    }
+
+    // Check and reserve mem-reserve block
+    struct_address = (unsigned long)*header + (unsigned long) off_mem_rsvmap;
+    cur_address = (unsigned char *)struct_address;
+    while(1) {
+        unsigned long long address = __builtin_bswap64(*((unsigned long long *)cur_address));
+        cur_address += 8;
+        unsigned long long size = __builtin_bswap64(*((unsigned long long *)cur_address));
+        cur_address += 8;
+        printf("Address: %d\nSize: %d\n", address, size);
+        mem_reserve((unsigned long)address, (int)size);
+        if(address == 0 && size == 0) break;
+    }
+    // Reserve dtb
+    mem_reserve((unsigned long)(*header), totalsize);
+}
+
+void __buddy_init() {
+    for(int i = 0; i <= MAX_BUDDY_ORDER; i++) {
+        buddy[i].head.next = &buddy[i].head;
+        buddy[i].head.prev = &buddy[i].head;
+        buddy[i].pg_free = 0;
+    }
+    // Get total memory from mailbox
+    unsigned int __PAGE_NUM = get_address() / PAGE_SIZE;
+    printf("%d\n", __PAGE_NUM);
+    page_frame = (struct PAGE_FRAME *)simple_malloc((unsigned long)(sizeof(struct PAGE_FRAME) * __PAGE_NUM));
+    // Lazy implement
+    memset_pageframe(page_frame, __PAGE_NUM, 0, AVAL);
+    for(int i = 0; i < __PAGE_NUM; i++) insert_pageframe(&(buddy[0]), &(page_frame[i].list));
+    // Check available memory block, reserve dtb, reserve mem-reserve section
+    dtb_mem_reserve();
+    // reserve CPIO
+    unsigned long cpio_start = get_initramfs("linux,initrd-start");
+    unsigned long cpio_end = get_initramfs("linux,initrd-end");
+    mem_reserve(cpio_start, cpio_end - cpio_start);
+    // reserve kernel img
+    extern unsigned long __start, __end;
+    mem_reserve((unsigned long)&__start, (&__end - &__start));
+    // reserve simple allocator
+    mem_reserve(allocator_init, PAGE_SIZE);
+    // check if any framepage can be merged, not O(n) method
+    for(int i = 0; i < __PAGE_NUM; i++) {
         if(page_frame[i].order != 0 || page_frame[i].used != AVAL) continue;
         remove_pageframe(&(buddy[0]), &(page_frame[i].list));
         merge_page(&page_frame[i], i);
@@ -271,12 +388,26 @@ void kfree(void *addr) {
 }
 
 void mem_reserve(unsigned long addr, int size) {
-    int num = (size + PAGE_SIZE - 1) / PAGE_SIZE;
     int page_id = ((unsigned long)addr - (unsigned long)PAGE_INIT) / PAGE_SIZE;
     if(page_id < 0) return;
-    for(int i = 0; i < num; i++) {
-        if(page_id + i >= PAGE_NUM) return;
-        page_frame[page_id + i].used = USED;
-        remove_pageframe(&(buddy[page_frame[page_id + i].order]), (struct PAGE_LIST *)&page_frame[page_id + i]);
+    for(int i = page_id; (PAGE_INIT + i * PAGE_SIZE) < addr + size; i++) {
+        page_frame[i].used = USED;
+        remove_pageframe(&(buddy[page_frame[i].order]), (struct PAGE_LIST *)&page_frame[i]);
     }
+}
+
+void buddy_test() {
+    void *p = kmalloc(8);
+    void *p1 = kmalloc(8);
+    void *q = kmalloc(520);
+    void *a= kmalloc(4096);
+    void *b = kmalloc(16684);
+    void *c = kmalloc(3200);
+
+    kfree(b);
+    kfree(p);
+    kfree(a);
+    kfree(p1);
+    kfree(q);
+    kfree(c);
 }
