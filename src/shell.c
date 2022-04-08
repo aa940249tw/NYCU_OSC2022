@@ -1,13 +1,18 @@
 #include "uart.h"
+#include "shell.h"
 #include "reset.h"
 #include "mbox.h"
 #include "uart_boot.h"
 #include "utils.h"
-#include "__cpio.h"
+#include "initrd.h"
 #include "devicetree.h"
 #include "exception.h"
 #include "timer.h"
 #include "mm.h"
+#include "thread.h"
+#include "syscall.h"
+
+extern void _from_el1_to_el0();
 
 void shell_init() {
 	uart_init();
@@ -52,13 +57,11 @@ void shell_select(char *cmd) {
 	}
 	else if(!strcmp(cmd, "ls")) {
 		printf("\n");
-		unsigned long cpio_address = get_initramfs("linux,initrd-start");
-		printf("Found cpio file at address %x\n", cpio_address);
-		cpio_ls(cpio_address);
+		cpio_ls();
 	}
 	else if(!strncmp(cmd, "cat", 3)) {
 		printf("\n");
-		cpio_cat(get_initramfs("linux,initrd-start"), cmd + 4);
+		cpio_cat(cmd + 4);
 	}
 	else if(!strcmp(cmd, "dtb")) {
 		printf("\n");
@@ -94,6 +97,25 @@ void shell_select(char *cmd) {
 	else if(!strncmp(cmd, "bd", 2)) {
 		printf("\n");
 		buddy_test();
+	}
+	else if(!strcmp(cmd, "thread")) {
+		//thread_test();
+        //posix_test();
+        //fork_test();
+        play_video();
+	}
+	else if(!strcmp(cmd, "jump")) {
+		_from_el1_to_el0();
+        /*
+        void (*func_ptr)() = shell_input;
+        asm volatile("ldr     x1, =0x60000\n"
+                     "msr     sp_el0, x1\n"
+                     "mov     x2, #0\n"
+                     "msr     spsr_el1, x2\n");
+        asm volatile("msr     elr_el1, %0\n"::"r"(func_ptr));
+        asm volatile("eret");
+        */
+        //printf("\n");
 	}
 	else if(cmd[0] != '\0') uart_puts("\nshell: command not found.\n");
 }

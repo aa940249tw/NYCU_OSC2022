@@ -82,3 +82,7 @@ void* memcpy (void *dest, const void *src, int len) {
         *d++ = *s++;
     return dest;
 }
+
+void delay(size_t sec) {
+    while (sec--) asm volatile("nop");
+}

@@ -18,7 +18,8 @@ void irq_handler(int type, unsigned long esr, unsigned long elr) {
         uart_handler();
     }
     else if(*CORE0_INTERRUPT_SOURCE & 0x2) {
-        core_timer_handler();
+        context_sw_timer();
+        //core_timer_handler();
     }
     else {
         printf("Exception eccurs!!!\n");

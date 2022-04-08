@@ -7,7 +7,7 @@ ARMS = $(wildcard *.S)
 #OBJS = $(SRCS:.c=.o)
 ARMO = $(ARMS:.S=.o)
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
-CFLAGS = -Wall -O2 -g -ffreestanding -nostdinc -nostdlib -nostartfiles -I include
+CFLAGS = -Wall -O0 -g -ffreestanding -nostdinc -nostdlib -nostartfiles -I include
 
 all: clean cpio kernel8.img
 
@@ -33,7 +33,7 @@ $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
 run:
-	qemu-system-aarch64 -M raspi3 -kernel kernel8.img -serial null -serial stdio -display none -initrd initramfs.cpio -dtb bcm2710-rpi-3-b-plus.dtb
+	qemu-system-aarch64 -M raspi3 -kernel kernel8.img -serial null -serial stdio -initrd initramfs.cpio -dtb bcm2710-rpi-3-b-plus.dtb
 	
 serial:
 	qemu-system-aarch64 -M raspi3 -kernel kernel8.img -serial null -serial pty -display none

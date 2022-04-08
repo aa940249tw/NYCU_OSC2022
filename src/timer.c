@@ -1,6 +1,9 @@
 #include "timer.h"
 #include "uart.h"
 #include "utils.h"
+#include "thread.h"
+
+#define context_switch_time 1
 
 void timer_init() {
     timeout_head = 0;
@@ -19,6 +22,13 @@ void get_coretime() {
     asm volatile("mrs  %[result], cntfrq_el0": [result]"=r"(freq));
     time = (1000 * count) / freq;
     printf("[%2d] core timer interrupt\n", time);
+}
+
+void context_sw_timer() {
+    unsigned long cntfrq_el0;
+    asm volatile("mrs %0, cntfrq_el0" : "=r"(cntfrq_el0));
+    asm volatile("msr cntp_tval_el0, %0" : : "r"(cntfrq_el0 >> 5));
+    schedule();
 }
 
 void core_timer_handler() {

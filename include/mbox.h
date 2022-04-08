@@ -28,7 +28,8 @@ extern volatile unsigned int mailbox[36];
 #define END_TAG             0x00000000
 
 
-int mbox_call(unsigned char ch);
+int mailbox_call(unsigned char ch);
+int __mbox_call(unsigned char, unsigned int *);
 void get_revision();
 unsigned int get_address();
 

@@ -5,6 +5,8 @@
 #define CORE0_INTERRUPT_SOURCE  (volatile unsigned int*)(0x40000060)
 #define CORE_TIMER_CALLBACK_BUFFER_SIZE 64
 
+#include "utils.h"
+
 struct core_timeout {
     struct core_timeout *next;
     void (*callback)(struct core_timeout *); 
@@ -18,6 +20,7 @@ struct core_timeout {
 extern void svc_timer();
 void get_coretime();
 void core_timer_handler();
+void context_sw_timer();
 extern void core_timer_enable();
 extern void core_timer_disable();
 void add_timer(void (*)(), unsigned int, char *, unsigned int);

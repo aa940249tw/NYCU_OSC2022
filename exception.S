@@ -18,7 +18,8 @@
     stp     x24, x25, [sp ,16 * 12]
     stp     x26, x27, [sp ,16 * 13]
     stp     x28, x29, [sp ,16 * 14]
-    str     x30, [sp, 16 * 15]
+    mrs     x21, sp_el0
+    stp     x30, x21, [sp, #16 * 15]
     mrs     x22, elr_el1
     mrs     x23, spsr_el1
     stp     x22, x23, [sp, #16 * 16]
@@ -29,6 +30,8 @@
     ldp     x22, x23, [sp, #16 * 16]
     msr     elr_el1, x22
     msr     spsr_el1, x23
+    ldp     x30, x21, [sp, #16 * 15]
+    msr     sp_el0, x21
     ldp     x0, x1, [sp ,16 * 0]
     ldp     x2, x3, [sp ,16 * 1]
     ldp     x4, x5, [sp ,16 * 2]
@@ -44,7 +47,6 @@
     ldp     x24, x25, [sp ,16 * 12]
     ldp     x26, x27, [sp ,16 * 13]
     ldp     x28, x29, [sp ,16 * 14]
-    ldr     x30, [sp, 16 * 15]
     add     sp, sp, 32 * 9
 .endm
 
@@ -139,19 +141,20 @@ serror_sp_el0:
 synchronous_sp_elx:
     save_all
     mov     x0, #4
+    mov     x3, sp
     bl      _get_exception_info
     bl      svc_handler
     load_all
     eret
 
 irq_sp_elx:
-    msr     DAIFSet, 0xf
     save_all
+    mov     x0, sp
+    bl      save_sp
     mov     x0, #5
     bl      _get_exception_info
     bl      irq_handler
     load_all
-    msr     DAIFClr, 0xf
     eret
 
 fiq_sp_elx:
@@ -167,19 +170,20 @@ serror_sp_elx:
 synchronous_sp_el64:
     save_all
     mov     x0, #8 
+    mov     x3, sp
     bl      _get_exception_info
     bl      svc_handler
     load_all
     eret
 
 irq_el64:
-    msr     DAIFSet, 0xf
     save_all
+    mov     x0, sp
+    bl      save_sp
     mov     x0, #9
     bl      _get_exception_info
     bl      irq_handler
     load_all
-    msr     DAIFClr, 0xf
     eret
     
 fiq_el64:
@@ -211,3 +215,11 @@ serror_el32:
     save_all
     mov     x0, #16
     b       exception_handler
+
+.global return_posix
+return_posix:
+    mov     sp, x0
+.global return_to_user
+return_to_user:
+    load_all
+    eret

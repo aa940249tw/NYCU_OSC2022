@@ -17,7 +17,7 @@ volatile unsigned int  __attribute__((aligned(16))) mailbox[36];
 #define MBOX_FULL    	0x80000000
 #define MBOX_RESPONSE   0x80000000
 
-int mbox_call(unsigned char ch)
+int mailbox_call(unsigned char ch)
 {
     unsigned int r = (((unsigned int)((unsigned long)&mailbox)&~0xF) | (ch&0xF));
     /* wait until we can write to the mailbox */
@@ -38,6 +38,26 @@ int mbox_call(unsigned char ch)
     return 0;
 }
 
+int __mbox_call(unsigned char ch, unsigned int *mbox) {
+    unsigned int r = (((unsigned int)((unsigned long)mbox)&~0xF) | (ch&0xF));
+    /* wait until we can write to the mailbox */
+    do{asm volatile("nop");}while(*MBOX_STATUS & MBOX_FULL);
+    /* write the address of our message to the mailbox with channel identifier */
+    *MBOX_WRITE = r;
+    /* now wait for the response */
+
+    while(1) {
+        /* is there a response? */
+        do{asm volatile("nop");}while(*MBOX_STATUS & MBOX_EMPTY);
+        /* is it a response to our message? */
+
+        if(r == *MBOX_READ)
+            /* is it a valid successful response? */
+            return mbox[1]==MBOX_RESPONSE;
+    }
+    return 0;
+}
+
 void get_revision() {
 	mailbox[0] = 7 * 4; // buffer size in bytes
   	mailbox[1] = REQUEST_CODE;
@@ -48,7 +68,7 @@ void get_revision() {
   	mailbox[5] = 0; // value buffer
   	// tags end
   	mailbox[6] = END_TAG;
-	if (mbox_call(MBOX_CH_PROP)) {
+	if (mailbox_call(MBOX_CH_PROP)) {
         uart_puts("\nMy board revision is: ");
         uart_hex(mailbox[5]);
         uart_puts("\n");
@@ -68,7 +88,7 @@ unsigned int get_address() {
   	mailbox[6] = 0;
   	// tags end
   	mailbox[7] = END_TAG;
-	if (mbox_call(MBOX_CH_PROP)) {
+	if (mailbox_call(MBOX_CH_PROP)) {
         uart_puts("\nMy ARM memory base address is: ");
         uart_hex(mailbox[5]);
         uart_puts("\nMy ARM memory size is: ");

@@ -75,7 +75,7 @@ void *remove_dpage(struct DYNAMIC_PAGE *d) {
     struct PAGE_LIST *l = d->freelist.next;
     d->freelist.next = l->next;
     l->next = NULL;
-    printf("dpage: 0x%x\n", d->freelist.next);
+    //printf("dpage: 0x%x\n", d->freelist.next);
     return (void *) l;
 }
 
@@ -161,7 +161,7 @@ void buddy_init() {
         remove_pageframe(&(buddy[0]), &(page_frame[i].list));
         merge_page(&page_frame[i], i);
     }
-    buddy_info();
+    //buddy_info();
 }
 
 // Reserved buddy init
@@ -268,7 +268,7 @@ void __buddy_init() {
         remove_pageframe(&(buddy[0]), &(page_frame[i].list));
         merge_page(&page_frame[i], i);
     }
-    buddy_info();
+    //buddy_info();
 }
 
 void dynamic_init() {
@@ -325,7 +325,7 @@ void *alloc_pages(int order) {
     for(int i = order; i <= MAX_BUDDY_ORDER; i++) {
         if(buddy[i].pg_free > 0) {
             struct PAGE_FRAME *tmp = get_pageframe(i, order);
-            buddy_info();
+            //buddy_info();
             return (void *)(PAGE_INIT + (tmp - page_frame)*PAGE_SIZE);
         }
     }
@@ -345,13 +345,13 @@ void free_pages(void *addr) {
     */
     memset_pageframe(p+1, (1 << p->order) - 1, p->order, F);
     merge_page(p, page_id);
-    buddy_info();
+    //buddy_info();
 }
 
 void *kmalloc(int size) {
     int order = 0;
     if(size > (1 << (MEMPOOL_TYPE - 1))) {
-        printf("Using Buddy System.\n");
+        //printf("Using Buddy System.\n");
         for (int i = 0; i <= MAX_BUDDY_ORDER; i++) {
             if (size <= ((1 << i) * PAGE_SIZE)) {
                 order = i;
@@ -361,7 +361,7 @@ void *kmalloc(int size) {
         return alloc_pages(order);
     }
     else {
-        printf("Using Dynamic System.\n");
+        //printf("Using Dynamic System.\n");
         for (int i = 3; i < MEMPOOL_TYPE; i++) {
             if (size <= (1 << i)) {
                 order = i;
@@ -377,13 +377,13 @@ void kfree(void *addr) {
         for(int j = 0; j < MAX_DYNAMIC_PAGE; j++) {
             struct DYNAMIC_PAGE *d = &(mem_pool[i].d_page[j]);
             if(d->used && (unsigned long)(addr - d->page_addr) < PAGE_SIZE) {
-                printf("Free Dynamic.\n");
+                //printf("Free Dynamic.\n");
                 dynamic_free(d, addr);
                 return;
             }
         }
     }
-    printf("Free Buddy.\n");
+    //printf("Free Buddy.\n");
     free_pages(addr);
 }
 
@@ -400,7 +400,7 @@ void buddy_test() {
     void *p = kmalloc(8);
     void *p1 = kmalloc(8);
     void *q = kmalloc(520);
-    void *a= kmalloc(4096);
+    void *a = kmalloc(4096);
     void *b = kmalloc(16684);
     void *c = kmalloc(3200);
 

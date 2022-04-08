@@ -1,9 +1,11 @@
-#ifndef ___CPIO_H__
-#define ___CPIO_H__
+#ifndef __INITRD_H__
+#define __INITRD_H__
 
 #define CPIO_ADDR 0x20000000 // Rpi3
 //#define CPIO_ADDR 0x8000000 // QEMU
 #define CPIO_SIZE 110
+
+#include "utils.h"
 
 struct cpio_newc_header {
 	char	c_magic[6];
@@ -22,7 +24,16 @@ struct cpio_newc_header {
 	char	c_check[8];
 };
 
-void cpio_ls(unsigned long);
-void cpio_cat(unsigned long, char *);
+struct exec_t {
+	struct cpio_newc_header *head;
+	char *filecontext;
+	size_t len;
+};
+
+void cpio_init();
+void cpio_ls();
+void cpio_cat(char *);
+struct exec_t *cpio_find(char *);
+void __exec(char *, char **);
 
 #endif
