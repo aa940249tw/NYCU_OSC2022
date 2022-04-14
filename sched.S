@@ -67,6 +67,6 @@ run_posix:
     msr    elr_el1,  x0    
     msr    sp_el0, x1
     mov    x0, #0        
-    msr    spsr_el1, x0    
-    mov    x30, x2         
+    msr    spsr_el1, x0
+    mov    x30, x2  
     eret

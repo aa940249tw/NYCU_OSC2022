@@ -95,10 +95,10 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                     __sigreturn();
                     break;
                 case 8:
-                    __register_posix(((struct trapframe *)trapframe)->x[0], (void (*))((struct trapframe *)trapframe)->x[1]);
+                    __signal(((struct trapframe *)trapframe)->x[0], (void (*))((struct trapframe *)trapframe)->x[1]);
                     break;
                 case 9:
-                    __p_signal(((struct trapframe *)trapframe)->x[0], ((struct trapframe *)trapframe)->x[1]);
+                    __kill(((struct trapframe *)trapframe)->x[0], ((struct trapframe *)trapframe)->x[1]);
                     break;
             }
     }

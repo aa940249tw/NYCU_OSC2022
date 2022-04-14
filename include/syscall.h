@@ -11,7 +11,7 @@ void exit();
 int fork();
 int mbox_call(unsigned char, unsigned int *);
 void sigreturn();
-void p_signal(int, int);
-void register_posix(int, void (*));
+void kill(int, int);
+void signal(int, void (*));
 
 #endif

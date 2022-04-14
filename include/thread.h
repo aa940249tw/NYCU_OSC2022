@@ -50,8 +50,8 @@ int __getpid();
 void __fork(uint64_t);
 void __exit();
 void __sigreturn();
-void __register_posix(int, void (*));
-void __p_signal(int, int);
+void __signal(int, void (*));
+void __kill(int, int);
 
 void thread_test();
 void fork_test();

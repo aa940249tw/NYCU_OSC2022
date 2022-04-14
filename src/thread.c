@@ -27,6 +27,10 @@ void init_thread() {
     INIT_LIST_HEAD(&(run_queue->list));
     INIT_LIST_HEAD(kill_queue);
     asm volatile("msr tpidr_el1, %0"::"r"(run_queue));
+    uint64_t tmp;
+    asm volatile("mrs %0, cntkctl_el1" : "=r"(tmp));
+    tmp |= 1;
+    asm volatile("msr cntkctl_el1, %0" : : "r"(tmp));
     core_timer_enable();
 }
 
@@ -64,6 +68,13 @@ void kill_zombies() {
     }
 }
 
+void print_con() {
+    struct trapframe *tmp = (struct trapframe *)((struct thread_t *)get_current())->ksp;
+    //for(int i = 0; i < 34; i++) printf("%x\n", *((char *)((uint64_t)tmp + i)));
+    printf("%x %x\n", tmp, tmp->elrel1);
+    printf("--------------------------------\n");
+}
+
 void schedule() {
     uint64_t cur = get_current();
     if(((struct thread_t *)cur)->status == RUN) list_add_tail(&(((struct thread_t *)cur)->list), &(run_queue->list));
@@ -76,7 +87,7 @@ void schedule() {
     else list_del(tmp);
     struct thread_t *t = container_of(tmp, struct thread_t, list);
     switch_to((struct task_context *)cur, (struct task_context *)t);
-    //check_posix(t);
+    check_posix((struct thread_t *)get_current());
 }
 
 extern void exit();
@@ -88,8 +99,10 @@ void check_posix(struct thread_t *t) {
     for(int i = 0; i < MAX_SIG; i++) {
         if(p->signal & (1 << i)) {
             p->signal &= ~(1 << i);
-            if(p->signal_handler[i] && p->signal_handler[i] != (uint64_t)exit) 
+            if(p->signal_handler[i] && p->signal_handler[i] != (uint64_t)exit) {
+                p->masked = true;
                 run_posix(p->signal_handler[i], p->sig_sp, (uint64_t)sigreturn);
+            }
             else if(p->signal_handler[i] == (uint64_t)exit) {
                 printf("Kill %d %d: Using default handler.\n", t->id, getpid());
                 exit();
@@ -102,7 +115,8 @@ void check_posix(struct thread_t *t) {
 }
 
 void save_sp(uint64_t k_sp) {
-    ((struct thread_t *)get_current())->ksp = k_sp;
+    struct thread_t *cur = (struct thread_t *)get_current();
+    if(!cur->posix.masked) cur->ksp = k_sp;
 }
 
 int __getpid() {
@@ -118,6 +132,8 @@ void __fork(uint64_t p_trapframe) {
     for(int i = 0; i < THREAD_SIZE; i++) *((char *)child->user_stack - i) = *((char *)parent->user_stack - i);
     // Copy kernel stack
     for(int i = 0; i < THREAD_SIZE; i++) *((char *)child->kernel_stack - i) = *((char *)parent->kernel_stack - i);
+    // Copy POSIX
+    copy_posix(&(parent->posix), &(child->posix));
     // Set Child's lr
     child->context.lr = (uint64_t)return_to_user;
     // Set Child's sp to right place
@@ -141,16 +157,17 @@ extern void return_posix(uint64_t);
 
 void __sigreturn() {
     struct thread_t *cur = (struct thread_t *)get_current();
+    cur->posix.masked = false;
     //check_posix(cur);
     return_posix(cur->ksp);
 }
 
-void __register_posix(int SIG, void (*func)) {
+void __signal(int SIG, void (*func)) {
     struct thread_t *cur = (struct thread_t *)get_current();
     cur->posix.signal_handler[SIG] = (uint64_t)func;
 }
 
-void __p_signal(int SIG, int tid) {
+void __kill(int tid, int SIG) {
     struct list_head *tmp = NULL;
     list_for_each(tmp, &(run_queue->list)) {
         if(container_of(tmp, struct thread_t, list)->id == tid) break;
@@ -220,21 +237,20 @@ void play_video() {
 
 void kill_print() {
     printf("Kill me if you can BITCH!!!!\n");
-
+    delay(100000000);
+    printf("Hi\n");
 }
 
 void posix_test() {
     int ret = 0;
     if((ret = fork()) == 0) {
         if((ret = fork()) == 0) {
-            //register_posix(SIGKILL, kill_print);
-            while(1) ;
+            signal(SIGKILL, kill_print);
+            while(1);
         }
         else {
-            while(1) {
-                //p_signal(SIGKILL, 2);
-                //printf("%d\n", getpid());
-            }
+            kill(2, SIGKILL);
+            //printf("%d\n", getpid());
         }
     }
     else {

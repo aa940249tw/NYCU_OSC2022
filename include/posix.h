@@ -12,11 +12,13 @@ struct posix_t {
     uint16_t signal;
     uint64_t signal_handler[MAX_SIG];
     uint64_t sig_sp;
+    bool masked;
 };
 
 void init_posix(struct posix_t *);
 void reset_posix(struct posix_t *);
 void free_posix_stack(struct posix_t *);
+void copy_posix(struct posix_t *, struct posix_t *);
 
 #endif
 

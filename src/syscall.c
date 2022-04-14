@@ -102,16 +102,16 @@ inline void sigreturn() {
     __asm volatile("svc #0" :: "r"(x8));
 }
 
-inline void register_posix(int SIG, void (*func)) {
+inline void signal(int SIG, void (*func)) {
     register int x0 asm("x0") = SIG;
     register unsigned long x1 asm("r1") = (uint64_t)func;
     register unsigned long x8 asm("x8") = SYS_SIGREG;
     __asm volatile("svc #0" :: "r"(x0), "r"(x1), "r"(x8));
 }
 
-inline void p_signal(int SIG, int tid) {
-    register int x0 asm("x0") = SIG;
-    register int x1 asm("r1") = tid;
+inline void kill(int tid, int SIG) {
+    register int x0 asm("x0") = tid;
+    register int x1 asm("r1") = SIG;
     register unsigned long x8 asm("x8") = SYS_SIGNAL;
     __asm volatile("svc #0" :: "r"(x0), "r"(x1), "r"(x8));
 }
