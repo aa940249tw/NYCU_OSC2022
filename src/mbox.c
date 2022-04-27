@@ -1,6 +1,7 @@
 #include "gpio.h"
 #include "uart.h"
 #include "mbox.h"
+#include "mem.h"
 
 volatile unsigned int  __attribute__((aligned(16))) mailbox[36];
 
@@ -39,7 +40,7 @@ int mailbox_call(unsigned char ch)
 }
 
 int __mbox_call(unsigned char ch, unsigned int *mbox) {
-    unsigned int r = (((unsigned int)((unsigned long)mbox)&~0xF) | (ch&0xF));
+    unsigned int r = (((unsigned int)((unsigned long)KA2PA(mbox))&~0xF) | (ch&0xF));
     /* wait until we can write to the mailbox */
     do{asm volatile("nop");}while(*MBOX_STATUS & MBOX_FULL);
     /* write the address of our message to the mailbox with channel identifier */

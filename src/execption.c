@@ -87,9 +87,9 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                     __exit();
                     break;
                 case 6:
-                    asm volatile("msr DAIFClr, 0xf"); 
-                    ((struct trapframe *)trapframe)->x[0] = __mbox_call((unsigned char)((struct trapframe *)trapframe)->x[0], (unsigned int *)((struct trapframe *)trapframe)->x[1]);
-                    asm volatile("msr DAIFSet, 0xf"); 
+                    struct thread_t *cur = (struct thread_t *)get_current();
+                    unsigned int *mbox_addr = (unsigned int *)(((struct trapframe *)trapframe)->x[1] - 0xffffffffe000 + (cur->user_stack - 4096));
+                    ((struct trapframe *)trapframe)->x[0] = __mbox_call((unsigned char)((struct trapframe *)trapframe)->x[0], mbox_addr);
                     break;
                 case 7:
                     __sigreturn();
