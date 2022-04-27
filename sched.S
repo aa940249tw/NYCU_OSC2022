@@ -70,3 +70,34 @@ run_posix:
     msr    spsr_el1, x0
     mov    x30, x2  
     eret
+
+.global switch_ttbr0
+switch_ttbr0:
+    dsb     ish             // ensure write has completed
+    msr     ttbr0_el1, x0   // switch translation based address.
+    tlbi    vmalle1is       // invalidate all TLB entries
+    dsb     ish             // ensure completion of TLB invalidatation
+    isb                     // clear pipeline
+    ret
+
+.global to_el0
+to_el0:  
+    msr     elr_el1, x0
+    msr     sp_el0, x1
+
+
+    mov     x3, #0
+    msr     spsr_el1, x3
+
+    dsb     ish // ensure write has completed
+    msr     ttbr0_el1, x2 // switch translation based address.
+    tlbi    vmalle1is // invalidate all TLB entries
+    dsb     ish // ensure completion of TLB invalidatation
+
+    // set up exception handlers
+    ldr     x2, =exception_vector_table
+    msr     vbar_el1, x2
+
+    isb // clear pipeline
+
+    eret

@@ -101,8 +101,8 @@ void shell_select(char *cmd) {
 	else if(!strcmp(cmd, "thread")) {
 		//thread_test();
         //posix_test();
-        //fork_test();
-        play_video();
+        fork_test();
+        //play_video();
 	}
 	else if(!strcmp(cmd, "jump")) {
 		_from_el1_to_el0();

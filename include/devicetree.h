@@ -9,6 +9,7 @@
 #define FDT_END         0x00000009
 
 extern unsigned char __devicetree;
+extern unsigned char kernel_virt;
 
 struct fdt_header {
     unsigned int magic;

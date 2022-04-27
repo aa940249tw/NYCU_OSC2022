@@ -305,7 +305,9 @@ void *dynamic_allocator(int order) {
         }
         l->next = &(d->freelist);
     }
-    return remove_dpage(d);
+    void *ret = remove_dpage(d);
+    memset(ret, (1 << order), 0);
+    return ret;
 }
 
 void dynamic_free(struct DYNAMIC_PAGE *d, void *addr) {
@@ -326,7 +328,9 @@ void *alloc_pages(int order) {
         if(buddy[i].pg_free > 0) {
             struct PAGE_FRAME *tmp = get_pageframe(i, order);
             //buddy_info();
-            return (void *)(PAGE_INIT + (tmp - page_frame)*PAGE_SIZE);
+            void *ret = (void *)((PAGE_INIT + (tmp - page_frame)*PAGE_SIZE));
+            memset(ret, (1 << order) * PAGE_SIZE, 0);
+            return ret;
         }
     }
     printf("Can't find memory to allocate.\n");
@@ -396,14 +400,22 @@ void mem_reserve(unsigned long addr, int size) {
     }
 }
 
+void init_mm(struct mm_struct *mm) {
+    mm->mmap = NULL;
+    mm->pgd = (unsigned long)kmalloc(4096); //PTRS_PER_PGD = 512
+    mm->mm_count = 1;
+}
+
 void buddy_test() {
-    void *p = kmalloc(8);
-    void *p1 = kmalloc(8);
-    void *q = kmalloc(520);
+    void *p = kmalloc(2048);
+    void *p1 = kmalloc(2048);
+    void *q = kmalloc(2048);
     void *a = kmalloc(4096);
     void *b = kmalloc(16684);
-    void *c = kmalloc(3200);
+    void *c = kmalloc(2048);
 
+    printf("%x %x %x %x %x %x %x %x\n", p, p1, q, a, b, c, PAGE_INIT, kernel_virt);
+    buddy_info();
     kfree(b);
     kfree(p);
     kfree(a);

@@ -32,11 +32,13 @@ struct thread_t {
     uint64_t kernel_stack;
     uint64_t ksp;
     struct posix_t posix;
+    struct mm_struct *mm;
     struct list_head list;
 };
 
 extern void switch_to(struct task_context *, struct task_context *);
 extern void load_context(struct task_context *);
+extern void switch_ttbr0(unsigned long);
 extern uint64_t get_current(); 
 struct thread_t *Thread(void (*));
 void init_thread();

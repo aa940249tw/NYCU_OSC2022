@@ -4,7 +4,7 @@
 
 void dtb_info() {
     // get devicetree info
-    struct fdt_header **header = (struct fdt_header **)&__devicetree;
+    struct fdt_header **header = (struct fdt_header **)((unsigned long)&__devicetree + (unsigned long)&kernel_virt);
     unsigned int totalsize, off_dt_strings, off_dt_struct, size_dt_strings, size_dt_struct;
     totalsize        = convert_big_to_small_endian((*header)->totalsize);
     off_dt_strings   = convert_big_to_small_endian((*header)->off_dt_strings);
@@ -65,7 +65,7 @@ void dtb_info() {
 }  
 
 unsigned long get_initramfs(char *key) {
-    struct fdt_header **header = (struct fdt_header **)&__devicetree;
+    struct fdt_header **header = (struct fdt_header **)((unsigned long)&__devicetree + (unsigned long)&kernel_virt);
     unsigned int off_dt_strings, off_dt_struct, size_dt_struct;
     off_dt_strings   = convert_big_to_small_endian((*header)->off_dt_strings);
     off_dt_struct    = convert_big_to_small_endian((*header)->off_dt_struct);

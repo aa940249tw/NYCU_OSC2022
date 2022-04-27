@@ -1,7 +1,7 @@
 .section ".text"
 #core timer interrupt
 
-#define CORE0_TIMER_IRQ_CTRL 0x40000040
+#define CORE0_TIMER_IRQ_CTRL (0xffff000000000000 + 0x40000040)
 
 .global core_timer_enable
 core_timer_enable:
@@ -11,7 +11,7 @@ core_timer_enable:
     mrs     x0, cntfrq_el0
     msr     cntp_tval_el0, x0
     mov     x0, #2
-    ldr     x1, =0x40000040
+    ldr     x1, =CORE0_TIMER_IRQ_CTRL
     str     w0, [x1] // unmask timer interrupt
     ret
 

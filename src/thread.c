@@ -4,8 +4,11 @@
 #include "syscall.h"
 #include "posix.h"
 #include "utils.h"
+#include "mem.h"
+#include "initrd.h"
 
 extern void return_to_user();
+extern unsigned char kernel_virt;
 
 static int thread_cnt;
 struct thread_t *run_queue;
@@ -17,27 +20,45 @@ void init_thread() {
     thread_cnt = 0;
     run_queue = (struct thread_t *)kmalloc(sizeof(struct thread_t));
     run_queue->status = IDLE;
-    run_queue->id = thread_cnt++;
-    run_queue->id = 100;
-    run_queue->kernel_stack = 0x80000;
-    run_queue->user_stack = 0x60000;
-    run_queue->context.spel1 = run_queue->kernel_stack;
-    run_queue->context.spel0 = run_queue->user_stack;
-    init_posix(&(run_queue->posix));
+    kill_queue = (struct list_head *)kmalloc(sizeof(struct list_head));
     INIT_LIST_HEAD(&(run_queue->list));
     INIT_LIST_HEAD(kill_queue);
-    asm volatile("msr tpidr_el1, %0"::"r"(run_queue));
+    struct thread_t *thread_i = (struct thread_t *)kmalloc(sizeof(struct thread_t));
+    thread_i->status = RUN;
+    thread_i->id = thread_cnt++;
+    thread_i->id = 100;
+    thread_i->kernel_stack = (uint64_t)&kernel_virt + 0x80000;
+    thread_i->user_stack = (uint64_t)&kernel_virt + 0x60000;
+    thread_i->mm = (struct mm_struct *)kmalloc(sizeof(struct mm_struct));
+    thread_i->context.spel1 = thread_i->kernel_stack;
+    thread_i->context.spel0 = thread_i->user_stack;
+    init_posix(&(thread_i->posix));
+    init_mm(thread_i->mm);
+    // User stack
+    mappages((pagetable_t)thread_i->mm->pgd, USER_STACK, 4096, thread_i->user_stack - 4096, PT_AF | PT_USER | PT_MEM | PT_RW);
+    // Mailbox
+    mappages((pagetable_t)thread_i->mm->pgd, 0x3c100000, 0x200000, PA2KA(0x3c100000), PT_AF | PT_USER | PT_MEM | PT_RW);
+    //list_add_tail(&(thread_i->list), &(run_queue->list));
+    asm volatile("msr tpidr_el1, %0"::"r"(thread_i));
     uint64_t tmp;
     asm volatile("mrs %0, cntkctl_el1" : "=r"(tmp));
     tmp |= 1;
     asm volatile("msr cntkctl_el1, %0" : : "r"(tmp));
     core_timer_enable();
+    // Do exec, jump to user shell
+    __exec("syscall.img", NULL);
 }
 
 struct thread_t *Thread (void (*func)) {
     struct thread_t *new = (struct thread_t *)kmalloc(sizeof(struct thread_t));
     new->user_stack = (uint64_t)kmalloc(THREAD_SIZE) + THREAD_SIZE;
     new->kernel_stack = (uint64_t)kmalloc(THREAD_SIZE) + THREAD_SIZE;
+    new->mm = (struct mm_struct *)kmalloc(sizeof(struct mm_struct));
+    init_mm(new->mm);
+    // User stack
+    mappages((pagetable_t)new->mm->pgd, USER_STACK, 4096, new->user_stack - 4096, PT_AF | PT_USER | PT_MEM | PT_RW);
+    // Mailbox
+    mappages((pagetable_t)new->mm->pgd, 0x3c100000, 0x200000, PA2KA(0x3c100000), PT_AF | PT_USER | PT_MEM | PT_RW);
     new->context.spel1 = new->kernel_stack;
     new->context.spel0 = new->user_stack;
     new->context.fp = new->context.spel0;
@@ -86,6 +107,7 @@ void schedule() {
     if(tmp == &(run_queue->list));
     else list_del(tmp);
     struct thread_t *t = container_of(tmp, struct thread_t, list);
+    switch_ttbr0(t->mm->pgd);
     switch_to((struct task_context *)cur, (struct task_context *)t);
     check_posix((struct thread_t *)get_current());
 }
@@ -128,23 +150,29 @@ void __fork(uint64_t p_trapframe) {
     struct thread_t *child = Thread((void *)(0));
     // Copy context
     for(int i = 0; i < sizeof(struct task_context); i++) *((char *)&(child->context) + i) = *((char *)&(parent->context) + i);
-    // Copy user stack
-    for(int i = 0; i < THREAD_SIZE; i++) *((char *)child->user_stack - i) = *((char *)parent->user_stack - i);
+    // Copy user stacks
+    memcpy((void *)(child->user_stack - THREAD_SIZE), (void *)(parent->user_stack - THREAD_SIZE), THREAD_SIZE);
+    //for(int i = 1; i <= THREAD_SIZE; i++) *((char *)child->user_stack - i) = *((char *)parent->user_stack - i);
     // Copy kernel stack
-    for(int i = 0; i < THREAD_SIZE; i++) *((char *)child->kernel_stack - i) = *((char *)parent->kernel_stack - i);
+    memcpy((void *)(child->kernel_stack - THREAD_SIZE), (void *)(parent->kernel_stack - THREAD_SIZE), THREAD_SIZE);
+    //for(int i = 1; i <= THREAD_SIZE; i++) *((char *)child->kernel_stack - i) = *((char *)parent->kernel_stack - i);
     // Copy POSIX
     copy_posix(&(parent->posix), &(child->posix));
     // Set Child's lr
     child->context.lr = (uint64_t)return_to_user;
+    // Use the same code section 
+    child->mm->start_code = parent->mm->start_code;
+    child->mm->end_code = parent->mm->end_code;
+    mappages((pagetable_t)child->mm->pgd, USER_TEXT, child->mm->end_code - child->mm->start_code, child->mm->start_code, PT_AF | PT_USER | PT_MEM | PT_RW);
     // Set Child's sp to right place
     uint64_t k_offset = parent->kernel_stack - p_trapframe;
-    uint64_t u_offset = parent->user_stack - ((struct trapframe*)p_trapframe)->spel0;
-    child->context.spel0 = child->user_stack - u_offset;
+    //uint64_t u_offset = parent->user_stack - ((struct trapframe*)p_trapframe)->spel0;
+    //child->context.spel0 = child->user_stack - u_offset;
     child->context.spel1 = child->kernel_stack - k_offset;
     // Change return value
     ((struct trapframe*)p_trapframe)->x[0] = child->id;
     ((struct trapframe*)(child->kernel_stack - k_offset))->x[0] = 0;
-    ((struct trapframe*)(child->kernel_stack - k_offset))->spel0 = child->context.spel0;
+    //((struct trapframe*)(child->kernel_stack - k_offset))->spel0 = child->context.spel0;
 }
 
 void __exit() {

@@ -4,8 +4,10 @@
 #include "thread.h"
 #include "devicetree.h"
 #include "mm.h"
+#include "mem.h"
 
 struct cpio_newc_header* Header = (struct cpio_newc_header*)CPIO_ADDR;
+extern unsigned char kernel_virt;
 
 unsigned long align(unsigned long addr, unsigned long align_size) {
     unsigned long tmp = addr % align_size;
@@ -15,7 +17,7 @@ unsigned long align(unsigned long addr, unsigned long align_size) {
 
 void cpio_init() {
     unsigned long addr = get_initramfs("linux,initrd-start");
-    Header = (struct cpio_newc_header *)(addr == 0 ? CPIO_ADDR : addr);
+    Header = (struct cpio_newc_header *)((addr == 0 ? CPIO_ADDR : addr) + (unsigned long)&kernel_virt);
 }
 
 void cpio_ls() {
@@ -79,13 +81,17 @@ struct exec_t *cpio_find(char *file) {
     else return 0;
 }
 
+extern void to_el0();
 void __exec(char *filename, char **argv) {
+    struct thread_t *cur = (struct thread_t *)get_current();
     struct exec_t *execute = cpio_find(filename);
     void *user_program = kmalloc(execute->len);
     memcpy(user_program, execute->filecontext, execute->len);
+
+    cur->mm->start_code = (unsigned long)user_program;
+    cur->mm->end_code = (unsigned long)user_program + execute->len;
+    mappages((pagetable_t)cur->mm->pgd, USER_TEXT, execute->len, (uint64_t)user_program, PT_AF | PT_USER | PT_MEM | PT_RW);
     // TODO: Pass Args
-    asm("msr spsr_el1, %0"::"r"((uint64_t)0x0));
-    asm("msr elr_el1, %0"::"r"(user_program));
-    asm("eret");
+    to_el0(0, 0x0000fffffffff000, cur->mm->pgd);
 }
 

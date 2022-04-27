@@ -1,7 +1,8 @@
 #ifndef __GPIO_H__
 #define __GPIO_H__
 
-#define MMIO_BASE 0x3F000000
+extern unsigned char kernel_virt;
+#define MMIO_BASE ((unsigned long)&kernel_virt + 0x3F000000)
 
 #define GPFSEL0         ((volatile unsigned int*)(MMIO_BASE+0x00200000))
 #define GPFSEL1         ((volatile unsigned int*)(MMIO_BASE+0x00200004))

@@ -1,8 +1,9 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+extern unsigned char kernel_virt;
 #define NULL 0
-#define allocator_init 0x1000000
+#define allocator_init (0x1000000 + (unsigned long)&kernel_virt)
 
 typedef enum { false, true } bool;
 typedef unsigned char       uint8_t;

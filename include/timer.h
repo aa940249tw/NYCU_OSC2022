@@ -1,8 +1,9 @@
 #ifndef __TIMER_H__
 #define __TIMER_H__
 
-#define CORE0_TIMER_IRQ_CTRL 0x40000040
-#define CORE0_INTERRUPT_SOURCE  (volatile unsigned int*)(0x40000060)
+extern unsigned char kernel_virt;
+#define CORE0_TIMER_IRQ_CTRL ((unsigned long)&kernel_virt + 0x40000040)
+#define CORE0_INTERRUPT_SOURCE  (volatile unsigned int*)(0x40000060 + (unsigned long)&kernel_virt)
 #define CORE_TIMER_CALLBACK_BUFFER_SIZE 64
 
 #include "utils.h"
@@ -32,6 +33,6 @@ void core_timer_handler_test();
 void timer_init();
 void core_timer_queue_status();
 
-struct core_timeout *timeout_head;
+extern struct core_timeout *timeout_head;
 
 #endif
