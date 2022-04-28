@@ -32,8 +32,10 @@ void init_thread() {
     thread_i->mm = (struct mm_struct *)kmalloc(sizeof(struct mm_struct));
     thread_i->context.spel1 = thread_i->kernel_stack;
     thread_i->context.spel0 = thread_i->user_stack;
-    init_posix(&(thread_i->posix));
     init_mm(thread_i->mm);
+    init_posix(&(thread_i->posix));
+    // Map posix stack
+    mappages((pagetable_t)thread_i->mm->pgd, POSIX_SP, 4096, thread_i->posix.sig_sp - 4096, PT_AF | PT_USER | PT_MEM | PT_RW);
     // User stack
     mappages((pagetable_t)thread_i->mm->pgd, USER_STACK, 4096, thread_i->user_stack - 4096, PT_AF | PT_USER | PT_MEM | PT_RW);
     // Mailbox
@@ -66,6 +68,8 @@ struct thread_t *Thread (void (*func)) {
     new->id = thread_cnt++;
     new->status = RUN;
     init_posix(&(new->posix));
+    // Map posix stack
+    mappages((pagetable_t)new->mm->pgd, POSIX_SP, 4096, new->posix.sig_sp - 4096, PT_AF | PT_USER | PT_MEM | PT_RW);
     list_add_tail(&(new->list), &(run_queue->list));
     return new;
 }
@@ -123,7 +127,8 @@ void check_posix(struct thread_t *t) {
             p->signal &= ~(1 << i);
             if(p->signal_handler[i] && p->signal_handler[i] != (uint64_t)exit) {
                 p->masked = true;
-                run_posix(p->signal_handler[i], p->sig_sp, (uint64_t)sigreturn);
+                printf("%x\n", p->signal_handler[i]);
+                run_posix(p->signal_handler[i], POSIX_SP + 0x1000, (uint64_t)sigreturn);
             }
             else if(p->signal_handler[i] == (uint64_t)exit) {
                 printf("Kill %d %d: Using default handler.\n", t->id, getpid());

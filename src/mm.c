@@ -400,12 +400,6 @@ void mem_reserve(unsigned long addr, int size) {
     }
 }
 
-void init_mm(struct mm_struct *mm) {
-    mm->mmap = NULL;
-    mm->pgd = (unsigned long)kmalloc(4096); //PTRS_PER_PGD = 512
-    mm->mm_count = 1;
-}
-
 void buddy_test() {
     void *p = kmalloc(2048);
     void *p1 = kmalloc(2048);
@@ -422,4 +416,23 @@ void buddy_test() {
     kfree(p1);
     kfree(q);
     kfree(c);
+}
+
+/******************************** Virtual Memory Funtions ********************************/
+
+void init_mm(struct mm_struct *mm) {
+    mm->mmap = NULL;
+    mm->pgd = (unsigned long)kmalloc(4096); //PTRS_PER_PGD = 512
+    mm->mm_count = 1;
+}
+
+void mem_abort_handler(unsigned long esr, unsigned long addr) {
+    unsigned long dfsc = (esr & 0x3F);
+    if((dfsc & 0b111100) == 0b100) {    // range from 4 ~ 7: Translation fault
+        printf("[Translation fault]: %x\n", addr);
+    }
+    else if((dfsc >= 0b001101) && (dfsc <= 0b001111)) {   // Permission fault
+        printf("[Permission fault]: %x\n", addr);
+    }
+    while(1);
 }

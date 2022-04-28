@@ -13,6 +13,7 @@ extern unsigned char kernel_virt;
 #define MEMPOOL_TYPE        12  // can't allocate under 8 bytes (3 ~ 11)
 #define USER_STACK          0xffffffffe000
 #define USER_TEXT           0x0
+#define POSIX_SP            USER_STACK - 0x20000
 
 typedef enum {AVAL, USED, F} USAGE;
 
@@ -70,6 +71,6 @@ void mem_reserve(unsigned long, int);
 void buddy_test();
 
 void init_mm(struct mm_struct *);
-void allocate_mm();
+void mem_abort_handler(unsigned long, unsigned long);
 
 #endif
