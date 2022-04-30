@@ -1,6 +1,8 @@
 #include "mem.h"
 #include "mm.h"
 
+extern struct PAGE_FRAME *page_frame;
+
 void *__memset(void *d, int v, size_t n)
 {
     unsigned char *dst = (unsigned char *)d;
@@ -39,3 +41,25 @@ void mappages(pagetable_t pagetable, uint64_t va, uint64_t size, uint64_t pa, in
         *pte = KA2PA(pa) | perm | PT_PAGE;
     }
 }
+
+void copy_page_table(pagetable_t pt_dest, pagetable_t pt_src, int level, struct mm_struct *mm) {
+    int attr;
+    unsigned long pg;
+
+    for (int i = 0; i < 512; ++i) {
+        if (!(pt_src[i] & 0x1))
+            continue;
+        if (level == 0) {
+            pt_src[i] |= PT_RO;
+            pt_dest[i] = pt_src[i];
+            page_frame[VA_TO_FRAME(PA2KA(PTE2PA(pt_src[i])))].reference_cnt++;
+        }
+        else {
+            attr = pt_src[i] & 0xFFF;
+            pg = (uint64_t)alloc_pages(0);
+            pt_dest[i] = KA2PA((uint64_t)pg) | attr;
+            copy_page_table((pagetable_t)PA2KA(PTE2PA(pt_dest[i])), (pagetable_t)PA2KA(PTE2PA(pt_src[i])),  level - 1, mm);
+        }
+    }
+}
+

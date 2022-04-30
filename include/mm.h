@@ -15,22 +15,34 @@ extern unsigned char kernel_virt;
 #define USER_TEXT           0x0
 #define POSIX_SP            USER_STACK - 0x20000
 
+#define PROT_READ        0x1                /* Page can be read.  */
+#define PROT_WRITE       0x2                /* Page can be written.  */
+#define PROT_EXEC        0x4                /* Page can be executed.  */
+#define PROT_NONE        0x0                /* Page can not be accessed.  */
+
+#define MAP_FIXED        0x10
+#define MAP_ANONYMOUS    0x20
+#define MAP_POPULATE     0x08000
+
 typedef enum {AVAL, USED, F} USAGE;
 
 struct mm_struct {
-    struct vm_area_struct *mmap;
+    struct vma_area_struct *mmap;
     unsigned long pgd;
     unsigned long mmap_base;
     int mm_count;
     unsigned long start_code, end_code, start_data, end_data;
     unsigned long start_brk, brk, start_stack;
+    struct PAGE_FRAME *used_p;
 };
 
 struct vma_area_struct {
     unsigned long vm_start;
     unsigned long vm_end;
-    struct vm_area_struct *vm_next, *vm_prev;
+    struct vma_area_struct *vm_next;
     struct mm_struct *vm_mm;
+    int vm_prot;
+    int vm_flag;
 };
 
 struct PAGE_LIST {
@@ -41,6 +53,7 @@ struct PAGE_FRAME {
     struct PAGE_LIST list;
     USAGE used;
     int order;
+    int reference_cnt;  // For copy on write
 };
 
 struct BUDDY_SYSTEM {
@@ -72,5 +85,11 @@ void buddy_test();
 
 void init_mm(struct mm_struct *);
 void mem_abort_handler(unsigned long, unsigned long);
+void clear_pgd(struct mm_struct *);
+void clear_vma(struct mm_struct *);
+void vma_insert(struct mm_struct *, struct vma_area_struct *);
+unsigned long create_vma(struct mm_struct *, unsigned long, unsigned long, int, int);
+unsigned long chk_vma_valid(struct mm_struct *, unsigned long, unsigned long);
+void copy_vma(struct mm_struct *, struct mm_struct *);
 
 #endif

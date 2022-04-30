@@ -3,6 +3,8 @@
 #include "devicetree.h"
 #include "mbox.h"
 #include "utils.h"
+#include "mem.h"
+#include "thread.h"
 
 struct BUDDY_SYSTEM buddy[MAX_BUDDY_ORDER + 1];
 struct PAGE_FRAME *page_frame;
@@ -327,6 +329,7 @@ void *alloc_pages(int order) {
     for(int i = order; i <= MAX_BUDDY_ORDER; i++) {
         if(buddy[i].pg_free > 0) {
             struct PAGE_FRAME *tmp = get_pageframe(i, order);
+            tmp->reference_cnt++;
             //buddy_info();
             void *ret = (void *)((PAGE_INIT + (tmp - page_frame)*PAGE_SIZE));
             memset(ret, (1 << order) * PAGE_SIZE, 0);
@@ -340,6 +343,16 @@ void *alloc_pages(int order) {
 void free_pages(void *addr) {
     int page_id = ((unsigned long)addr - (unsigned long)PAGE_INIT) / PAGE_SIZE;
     struct PAGE_FRAME *p = &page_frame[page_id];
+    if(p->reference_cnt > 1) {
+        p->reference_cnt--;
+        return;
+    }
+    p->reference_cnt--;
+    if(p->used != USED) {
+        printf("Double free occured!!!\n");
+        while(1);
+        return;
+    }
     p->used = AVAL;
     /*  For Debug Only
     ((struct PAGE_LIST *)p)->prev->next = ((struct PAGE_LIST *)p)->next;
@@ -418,6 +431,18 @@ void buddy_test() {
     kfree(c);
 }
 
+struct PAGE_FRAME *get_page_from_addr(unsigned long addr) {
+    return (&page_frame[(addr - PAGE_INIT) / PAGE_SIZE]);
+}
+
+uint64_t get_page_id(struct PAGE_FRAME *p) {
+    return (p - page_frame); 
+}
+
+uint64_t get_page_addr(struct PAGE_FRAME *p) {
+    return (PAGE_INIT + get_page_id(p) * PAGE_SIZE);
+}
+
 /******************************** Virtual Memory Funtions ********************************/
 
 void init_mm(struct mm_struct *mm) {
@@ -426,13 +451,147 @@ void init_mm(struct mm_struct *mm) {
     mm->mm_count = 1;
 }
 
+bool chk_addr_valid(unsigned long addr, struct mm_struct *mm) {
+    struct vma_area_struct *vma;
+
+    vma = mm->mmap;
+    while (vma) {
+        if ((addr >= vma->vm_start) && (addr <= vma->vm_end))
+            return true;
+        vma = vma->vm_next;
+    }
+    return false;
+}
+
 void mem_abort_handler(unsigned long esr, unsigned long addr) {
     unsigned long dfsc = (esr & 0x3F);
-    if((dfsc & 0b111100) == 0b100) {    // range from 4 ~ 7: Translation fault
+    struct thread_t *cur = (struct thread_t *)get_current();
+    if((dfsc & 0b111100) == 0b100) {    // range from 4 ~ 7: Translation fault, Demand Paging
         printf("[Translation fault]: %x\n", addr);
+        if(!chk_addr_valid(addr, cur->mm)) {
+            printf("[Segmentation fault]: Kill Process\n");
+            __exit();
+        }
+        uint64_t va_g = PGROUNDDOWN(addr);
+        unsigned long tmp = (unsigned long)alloc_pages(0);
+        mappages((pagetable_t)cur->mm->pgd, va_g, THREAD_SIZE, tmp, PT_AF | PT_USER | PT_MEM | PT_RW);
+        /* Just for mailbox to work */
+        if(va_g == USER_STACK) cur->user_stack = tmp + THREAD_SIZE;
+        return;
     }
-    else if((dfsc >= 0b001101) && (dfsc <= 0b001111)) {   // Permission fault
+    else if((dfsc >= 0b001101) && (dfsc <= 0b001111)) {   // Permission fault, Copy On Write
         printf("[Permission fault]: %x\n", addr);
+        if(!chk_addr_valid(addr, cur->mm)) {
+            printf("[Segmentation fault]: Kill Process\n");
+            __exit();
+        } 
+        uint64_t va_g = PGROUNDDOWN(addr);
+        pte_t *pte_base = walk((pagetable_t)cur->mm->pgd, va_g, 1);
+        uint64_t k_addr = PA2KA(PTE2PA(*pte_base));
+        struct PAGE_FRAME *page = get_page_from_addr(k_addr);
+        if(*pte_base & PT_RO) {
+            if(page->reference_cnt == 1) {  // Only one process accessing this page
+                *pte_base = (*pte_base & (~PT_RO));
+                printf("Yah!!! It's mine page now\n");
+                return;
+            }
+            else {  // Allocate a new page and copy
+                page->reference_cnt--;
+                unsigned long tmp = (unsigned long)alloc_pages(0);
+                memcpy((void *)tmp, (void *)k_addr, THREAD_SIZE);
+                mappages((pagetable_t)cur->mm->pgd, va_g, THREAD_SIZE, tmp, PT_AF | PT_USER | PT_MEM | PT_RW);
+                /* Just for mailbox to work */
+                if(va_g == USER_STACK) cur->user_stack = tmp + THREAD_SIZE;
+                return;
+            }
+        }
     }
+    // Will never reach if everything works well
     while(1);
+}
+
+void clear_pgd(struct mm_struct *mm) {
+
+}
+
+void clear_vma(struct mm_struct *mm) {
+    struct vma_area_struct *now, *next;
+    now = mm->mmap;
+    next = now->vm_next;
+    while(next) {
+        kfree(now);
+        now = next;
+        next = now->vm_next;
+    }
+    kfree(now);
+    mm->mmap = NULL;
+}
+
+void vma_insert(struct mm_struct *mm, struct vma_area_struct *new) {
+    struct vma_area_struct *left, *right;
+    if(!(right = mm->mmap)) {
+        mm->mmap = new;
+        mm->mmap_base = (unsigned long)new;
+        return;
+    }
+    if (right->vm_start > new->vm_end) { // insert into head
+        mm->mmap = new;
+        new->vm_next = right;
+        return;
+    }
+    left = right;
+    right = right->vm_next;
+    while (right) {
+        if (right->vm_start > new->vm_end) { // insert in the middle
+            left->vm_next = new;
+            new->vm_next = right;
+            return;
+        }
+        left = right;
+        right = right->vm_next;
+    }
+    left->vm_next = new; // insert at tail
+    return;
+}
+
+unsigned long create_vma(struct mm_struct *mm, unsigned long start, unsigned long size, int prot, int flags) {
+    struct vma_area_struct *new = (struct vma_area_struct *)kmalloc(sizeof(struct vma_area_struct));
+    new->vm_next = NULL;
+    new->vm_mm = mm;
+    new->vm_prot = prot;
+    new->vm_flag = flags;
+    if(mm->mmap) start = chk_vma_valid(mm, start, size);
+    new->vm_start = start;
+    new->vm_end = start + size;
+    vma_insert(mm, new);
+    return new->vm_start;
+}
+
+unsigned long chk_vma_valid(struct mm_struct *mm, unsigned long start, unsigned long size) {
+    unsigned long end = start + size;
+    struct vma_area_struct *first = mm->mmap;
+    // Walk through vma list
+    while(first) {
+        if((first->vm_start > end) || (first->vm_end < start));
+        else goto Invalid;
+        first = first->vm_next;
+    }
+    return start;
+    // TODO: Invalid start addr, find first fit new addr
+    Invalid:
+        return -1;
+}
+
+void copy_vma(struct mm_struct *pm, struct mm_struct *cm) {
+    struct vma_area_struct *vma_src, *vma_dest;
+
+    cm->mmap = (struct vma_area_struct *)kmalloc(sizeof(struct vma_area_struct));
+    vma_dest = cm->mmap;
+    for (vma_src = pm->mmap; vma_src; ) {
+        memcpy((char*)vma_dest, (char*)vma_src, sizeof(struct vma_area_struct));
+        if ((vma_src = vma_src->vm_next)) {
+            vma_dest->vm_next = (struct vma_area_struct *)kmalloc(sizeof(struct vma_area_struct));
+            vma_dest = vma_dest->vm_next;
+        }
+    }
 }

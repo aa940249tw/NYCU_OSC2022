@@ -28,19 +28,14 @@ void init_thread() {
     thread_i->id = thread_cnt++;
     thread_i->id = 100;
     thread_i->kernel_stack = (uint64_t)&kernel_virt + 0x80000;
-    thread_i->user_stack = (uint64_t)&kernel_virt + 0x60000;
+    //thread_i->user_stack = (uint64_t)&kernel_virt + 0x60000;
     thread_i->mm = (struct mm_struct *)kmalloc(sizeof(struct mm_struct));
     thread_i->context.spel1 = thread_i->kernel_stack;
     thread_i->context.spel0 = thread_i->user_stack;
     init_mm(thread_i->mm);
     init_posix(&(thread_i->posix));
-    // Map posix stack
-    mappages((pagetable_t)thread_i->mm->pgd, POSIX_SP, 4096, thread_i->posix.sig_sp - 4096, PT_AF | PT_USER | PT_MEM | PT_RW);
-    // User stack
-    mappages((pagetable_t)thread_i->mm->pgd, USER_STACK, 4096, thread_i->user_stack - 4096, PT_AF | PT_USER | PT_MEM | PT_RW);
     // Mailbox
     mappages((pagetable_t)thread_i->mm->pgd, 0x3c100000, 0x200000, PA2KA(0x3c100000), PT_AF | PT_USER | PT_MEM | PT_RW);
-    //list_add_tail(&(thread_i->list), &(run_queue->list));
     asm volatile("msr tpidr_el1, %0"::"r"(thread_i));
     uint64_t tmp;
     asm volatile("mrs %0, cntkctl_el1" : "=r"(tmp));
@@ -53,12 +48,9 @@ void init_thread() {
 
 struct thread_t *Thread (void (*func)) {
     struct thread_t *new = (struct thread_t *)kmalloc(sizeof(struct thread_t));
-    new->user_stack = (uint64_t)kmalloc(THREAD_SIZE) + THREAD_SIZE;
     new->kernel_stack = (uint64_t)kmalloc(THREAD_SIZE) + THREAD_SIZE;
     new->mm = (struct mm_struct *)kmalloc(sizeof(struct mm_struct));
     init_mm(new->mm);
-    // User stack
-    mappages((pagetable_t)new->mm->pgd, USER_STACK, 4096, new->user_stack - 4096, PT_AF | PT_USER | PT_MEM | PT_RW);
     // Mailbox
     mappages((pagetable_t)new->mm->pgd, 0x3c100000, 0x200000, PA2KA(0x3c100000), PT_AF | PT_USER | PT_MEM | PT_RW);
     new->context.spel1 = new->kernel_stack;
@@ -68,8 +60,6 @@ struct thread_t *Thread (void (*func)) {
     new->id = thread_cnt++;
     new->status = RUN;
     init_posix(&(new->posix));
-    // Map posix stack
-    mappages((pagetable_t)new->mm->pgd, POSIX_SP, 4096, new->posix.sig_sp - 4096, PT_AF | PT_USER | PT_MEM | PT_RW);
     list_add_tail(&(new->list), &(run_queue->list));
     return new;
 }
@@ -85,9 +75,9 @@ void kill_zombies() {
         tmp = h->next;
         list_del(tmp);
         struct thread_t *t = container_of(tmp, struct thread_t, list);
-        kfree((void *)t->user_stack - THREAD_SIZE);
+        //kfree((void *)t->user_stack - THREAD_SIZE);
         kfree((void *)t->kernel_stack - THREAD_SIZE);
-        free_posix_stack(&(t->posix));
+        //free_posix_stack(&(t->posix));
         kfree(t);
         thread_cnt--;
     }
@@ -127,7 +117,9 @@ void check_posix(struct thread_t *t) {
             p->signal &= ~(1 << i);
             if(p->signal_handler[i] && p->signal_handler[i] != (uint64_t)exit) {
                 p->masked = true;
-                printf("%x\n", p->signal_handler[i]);
+                // Map posix stack
+                p->sig_sp = (uint64_t) kmalloc(4096);
+                mappages((pagetable_t)t->mm->pgd, POSIX_SP, 4096, t->posix.sig_sp, PT_AF | PT_USER | PT_MEM | PT_RW);
                 run_posix(p->signal_handler[i], POSIX_SP + 0x1000, (uint64_t)sigreturn);
             }
             else if(p->signal_handler[i] == (uint64_t)exit) {
@@ -156,19 +148,17 @@ void __fork(uint64_t p_trapframe) {
     // Copy context
     for(int i = 0; i < sizeof(struct task_context); i++) *((char *)&(child->context) + i) = *((char *)&(parent->context) + i);
     // Copy user stacks
-    memcpy((void *)(child->user_stack - THREAD_SIZE), (void *)(parent->user_stack - THREAD_SIZE), THREAD_SIZE);
-    //for(int i = 1; i <= THREAD_SIZE; i++) *((char *)child->user_stack - i) = *((char *)parent->user_stack - i);
+    //memcpy((void *)(child->user_stack - THREAD_SIZE), (void *)(parent->user_stack - THREAD_SIZE), THREAD_SIZE);
     // Copy kernel stack
     memcpy((void *)(child->kernel_stack - THREAD_SIZE), (void *)(parent->kernel_stack - THREAD_SIZE), THREAD_SIZE);
-    //for(int i = 1; i <= THREAD_SIZE; i++) *((char *)child->kernel_stack - i) = *((char *)parent->kernel_stack - i);
     // Copy POSIX
     copy_posix(&(parent->posix), &(child->posix));
     // Set Child's lr
     child->context.lr = (uint64_t)return_to_user;
     // Use the same code section 
-    child->mm->start_code = parent->mm->start_code;
-    child->mm->end_code = parent->mm->end_code;
-    mappages((pagetable_t)child->mm->pgd, USER_TEXT, child->mm->end_code - child->mm->start_code, child->mm->start_code, PT_AF | PT_USER | PT_MEM | PT_RW);
+    //child->mm->start_code = parent->mm->start_code;
+    //child->mm->end_code = parent->mm->end_code;
+    //mappages((pagetable_t)child->mm->pgd, USER_TEXT, child->mm->end_code - child->mm->start_code, child->mm->start_code, PT_AF | PT_USER | PT_MEM | PT_RW);
     // Set Child's sp to right place
     uint64_t k_offset = parent->kernel_stack - p_trapframe;
     //uint64_t u_offset = parent->user_stack - ((struct trapframe*)p_trapframe)->spel0;
@@ -178,6 +168,12 @@ void __fork(uint64_t p_trapframe) {
     ((struct trapframe*)p_trapframe)->x[0] = child->id;
     ((struct trapframe*)(child->kernel_stack - k_offset))->x[0] = 0;
     //((struct trapframe*)(child->kernel_stack - k_offset))->spel0 = child->context.spel0;
+
+    /* Copy on write */
+    copy_vma(parent->mm, child->mm);
+    copy_page_table((pagetable_t)child->mm->pgd, (pagetable_t)parent->mm->pgd, 3, child->mm);
+    // Mailbox
+    mappages((pagetable_t)child->mm->pgd, 0x3c100000, 0x200000, PA2KA(0x3c100000), PT_AF | PT_USER | PT_MEM | PT_RW);
 }
 
 void __exit() {
@@ -191,6 +187,7 @@ extern void return_posix(uint64_t);
 void __sigreturn() {
     struct thread_t *cur = (struct thread_t *)get_current();
     cur->posix.masked = false;
+    free_posix_stack(&cur->posix);
     //check_posix(cur);
     return_posix(cur->ksp);
 }

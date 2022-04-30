@@ -2,11 +2,14 @@
 #define MEM_H
 
 #include "utils.h"
+#include "mm.h"
+
 typedef unsigned long int pte_t;
 typedef unsigned long int *pagetable_t;
 
 #define PA2KA(a) (a + 0xffff000000000000)
 #define KA2PA(a) (a - 0xffff000000000000)
+#define VA_TO_FRAME(va) (((va) - PAGE_INIT) >> 12)
 
 #define PGSIZE 4096 // bytes per page
 #define PGSHIFT 12  // bits of offset within a page
@@ -38,7 +41,8 @@ typedef unsigned long int *pagetable_t;
 #define PT_NC (2 << 2)  // non-cachable
 
 void kvmmap(uint64_t va, uint64_t pa, uint64_t sz, int perm);
-void mappages(pagetable_t pagetable, uint64_t va, uint64_t size, uint64_t pa,
-              int perm);
+void mappages(pagetable_t pagetable, uint64_t va, uint64_t size, uint64_t pa, int perm);
+void copy_page_table(pagetable_t pt_dest, pagetable_t pt_src, int level, struct mm_struct *mm);
+pte_t *walk(pagetable_t pagetable, uint64_t va, int alloc);
 
 #endif // !MEM_H

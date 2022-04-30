@@ -3,7 +3,7 @@
 
 typedef enum {SYS_GET_PID, SYS_UART_READ, SYS_UART_WRITE, 
               SYS_EXEC, SYS_FORK, SYS_EXIT, SYS_MBOX, 
-              SYS_SIGRET, SYS_SIGREG, SYS_SIGNAL} SYS_ID;
+              SYS_SIGRET, SYS_SIGREG, SYS_SIGNAL, SYS_MMAP} SYS_ID;
 
 inline int getpid() {
     /*
@@ -114,4 +114,14 @@ inline void kill(int tid, int SIG) {
     register int x1 asm("r1") = SIG;
     register unsigned long x8 asm("x8") = SYS_SIGNAL;
     __asm volatile("svc #0" :: "r"(x0), "r"(x1), "r"(x8));
+}
+
+inline void *mmap(void* addr, size_t len, int prot, int flags) {
+    register void *x0 asm("x0") = addr;
+    register size_t x1 asm("x1") = len;
+    register int x2 asm("x2") = prot;
+    register int x3 asm("x3") = flags;
+    register void *ret asm("x0");
+    register unsigned long x8 asm("x8") = SYS_MMAP;
+    __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x2), "r"(x3), "r"(x8));
 }
