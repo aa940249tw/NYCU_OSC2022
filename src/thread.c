@@ -176,6 +176,38 @@ void __fork(uint64_t p_trapframe) {
     mappages((pagetable_t)child->mm->pgd, 0x3c100000, 0x200000, PA2KA(0x3c100000), PT_AF | PT_USER | PT_MEM | PT_RW);
 }
 
+extern void to_el0();
+void __exec(char *filename, char **argv) {
+    struct thread_t *cur = (struct thread_t *)get_current();
+    struct exec_t *execute = cpio_find(filename);
+    /*
+    void *user_program = kmalloc(execute->len);
+    memcpy(user_program, execute->filecontext, execute->len);
+
+    cur->mm->start_code = (unsigned long)user_program;
+    cur->mm->end_code = (unsigned long)user_program + execute->len;
+    mappages((pagetable_t)cur->mm->pgd, USER_TEXT, execute->len, (uint64_t)user_program, PT_AF | PT_USER | PT_MEM | PT_RW);
+    */
+    if(cur->mm->mmap) clear_vma(cur->mm);
+    //clear_pgd(cur->mm);
+    // Map text sections
+    create_vma(cur->mm, USER_TEXT, execute->len, 0, 0);   // Text vma
+    int u_size = execute->len;
+    for(int i = 0; i <= (execute->len / PAGE_SIZE); i++) {
+        void *user_program = alloc_pages(0);
+        u_size -= PAGE_SIZE;
+        int m_size = (u_size > 0) ? PAGE_SIZE : (u_size + PAGE_SIZE);
+        memcpy(user_program, (execute->filecontext + PAGE_SIZE * i), m_size);
+        mappages((pagetable_t)cur->mm->pgd, (USER_TEXT + PAGE_SIZE * i), m_size, (uint64_t)user_program, PT_AF | PT_USER | PT_MEM | PT_RW);
+    }
+    // Map User stack
+    create_vma(cur->mm, USER_STACK, THREAD_SIZE, 0, 0);   // Stack vma
+    cur->user_stack = (uint64_t)kmalloc(THREAD_SIZE) + THREAD_SIZE;
+    mappages((pagetable_t)cur->mm->pgd, USER_STACK, THREAD_SIZE, cur->user_stack - THREAD_SIZE, PT_AF | PT_USER | PT_MEM | PT_RW);
+    // TODO: Pass Args
+    to_el0(0, 0x0000fffffffff000, cur->mm->pgd);
+}
+
 void __exit() {
     struct thread_t *cur = (struct thread_t *)get_current();
     cur->status = ZONBIE;
