@@ -69,3 +69,11 @@ void p_signal(int, int) {
   asm volatile("mov x8, #9");
   asm volatile("svc 0");
 }
+
+void *mmap(void* addr, unsigned long len, int prot, int flags) {
+  asm volatile("mov x8, #10");
+  asm volatile("svc 0");
+  void *result;
+  asm volatile("mov %0, x0" : "=r"(result)::);
+  return result;
+}

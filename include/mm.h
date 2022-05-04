@@ -11,7 +11,7 @@ extern unsigned char kernel_virt;
 #define PAGE_INIT           ((unsigned long)&kernel_virt + 0x10000000)
 #define MAX_DYNAMIC_PAGE    16
 #define MEMPOOL_TYPE        12  // can't allocate under 8 bytes (3 ~ 11)
-#define USER_STACK          0xffffffffe000
+#define USER_STACK          0xffffffffb000
 #define USER_TEXT           0x0
 #define POSIX_SP            USER_STACK - 0x20000
 
@@ -91,5 +91,6 @@ void vma_insert(struct mm_struct *, struct vma_area_struct *);
 unsigned long create_vma(struct mm_struct *, unsigned long, unsigned long, int, int);
 unsigned long chk_vma_valid(struct mm_struct *, unsigned long, unsigned long);
 void copy_vma(struct mm_struct *, struct mm_struct *);
+uint64_t __mmap(uint64_t, size_t, int, int);
 
 #endif

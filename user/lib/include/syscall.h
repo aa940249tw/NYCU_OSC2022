@@ -13,4 +13,5 @@ int mbox_call(unsigned char ch, unsigned int *mbox);
 void kill(int pid);
 void register_posix(int, void(*));
 void p_signal(int, int);
+void *mmap(void* addr, unsigned long len, int prot, int flags);
 #endif

@@ -18,6 +18,13 @@ void wait_msec(unsigned int n) {
   } while (r < t);
 }
 
+void blow_stack() {
+  char arr[4096];
+  arr[0] = '\0';
+  arr[4095] = '\0';
+  asm volatile("" : : "r"(arr) : "memory");
+}
+
 int strncmp(const char *s1, const char *s2, register size_t n) {
   register unsigned char u1, u2;
   while (n-- > 0) {
@@ -196,19 +203,22 @@ void shell() {
   if (!strcmp(cmd, "help")) {
     printf("This is user process\n"
            "help:                  Print this help message.\n"
-           "exec:                  Exec syscall.img.\n"
+           "exec:                  Exec vm.img.\n"
            "pid:                   Show pid of current process.\n"
            "fork:                  Fork a child process that plays awesome "
            "video.\n"
            "kill [pid]:            Kill process by pid.\n"
            "signal_kill [pid]:     Kill process by pid with signal(Advanced).\n"
            "register:              Regist signal handler(Advanced).\n"
+           "demand:                Demand paging.\n"
+           "mmap_r:                mmap test 1.\n"
+           "mmap_w:                mmap test 2.\n"
            "exit:                  Quit.\n");
   } else if (!strcmp(cmd, "pid")) {
     int pid = getpid();
     printf("Pid is: %d\n", pid);
   } else if (!strcmp(cmd, "exec")) {
-    exec("syscall.img", 0);
+    exec("vm.img", 0);
   } else if (!strcmp(cmd, "fork")) {
     int child_pid = fork();
     if (child_pid == 0) {
@@ -230,6 +240,22 @@ void shell() {
     int el;
     asm volatile("mrs %0, CurrentEL" : "=r"(el));
     printf("Current: %d\n", el >> 2);
+  } else if(!strcmp(cmd, "mmap_r")) {
+    char* ptr = mmap(0x1000, 4096, 0x1, 0x20);
+    printf("addr: %x\n", ptr);
+    printf("%d\n", ptr[1000]); // should be 0
+    printf("%d\n", ptr[4097]); // should be segfault
+  } else if(!strcmp(cmd, "mmap_w")){
+    char* ptr = mmap(NULL, 4096, 0x1, 0x20);
+    printf("addr: %x\n", ptr);
+    printf("%d\n", ptr[1000]); // should be 0
+    ptr[0] = 1; // should be seg fault
+    printf("%d\n", ptr[0]); // not reached
+  } else if (!strncmp(cmd, "jump", 4)) {
+    asm volatile("mov x0, 0x0");
+    asm volatile("br x0");
+  } else if (!strcmp(cmd, "demand")) {
+    blow_stack();
   } else {
     printf("Not a vaild command!\n");
   }

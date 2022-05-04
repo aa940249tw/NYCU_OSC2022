@@ -191,7 +191,7 @@ void __exec(char *filename, char **argv) {
     if(cur->mm->mmap) clear_vma(cur->mm);
     //clear_pgd(cur->mm);
     // Map text sections
-    create_vma(cur->mm, USER_TEXT, execute->len, 0, 0);   // Text vma
+    create_vma(cur->mm, USER_TEXT, PGROUNDUP(execute->len), 0, 0);   // Text vma
     int u_size = execute->len;
     for(int i = 0; i <= (execute->len / PAGE_SIZE); i++) {
         void *user_program = alloc_pages(0);
@@ -201,9 +201,9 @@ void __exec(char *filename, char **argv) {
         mappages((pagetable_t)cur->mm->pgd, (USER_TEXT + PAGE_SIZE * i), m_size, (uint64_t)user_program, PT_AF | PT_USER | PT_MEM | PT_RW);
     }
     // Map User stack
-    create_vma(cur->mm, USER_STACK, THREAD_SIZE, 0, 0);   // Stack vma
-    cur->user_stack = (uint64_t)kmalloc(THREAD_SIZE) + THREAD_SIZE;
-    mappages((pagetable_t)cur->mm->pgd, USER_STACK, THREAD_SIZE, cur->user_stack - THREAD_SIZE, PT_AF | PT_USER | PT_MEM | PT_RW);
+    create_vma(cur->mm, USER_STACK, THREAD_SIZE * 4, PROT_READ | PROT_WRITE, 0);   // Stack vma
+    cur->user_stack = (uint64_t)kmalloc(THREAD_SIZE * 4) + THREAD_SIZE * 4;
+    //mappages((pagetable_t)cur->mm->pgd, USER_STACK, THREAD_SIZE, cur->user_stack - THREAD_SIZE, PT_AF | PT_USER | PT_MEM | PT_RW);
     // TODO: Pass Args
     to_el0(0, 0x0000fffffffff000, cur->mm->pgd);
 }

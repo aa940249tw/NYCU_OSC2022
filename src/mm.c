@@ -474,7 +474,17 @@ void mem_abort_handler(unsigned long esr, unsigned long addr) {
         }
         uint64_t va_g = PGROUNDDOWN(addr);
         unsigned long tmp = (unsigned long)alloc_pages(0);
-        mappages((pagetable_t)cur->mm->pgd, va_g, THREAD_SIZE, tmp, PT_AF | PT_USER | PT_MEM | PT_RW);
+        int flag = PT_AF | PT_USER | PT_MEM;
+        struct vma_area_struct *now, *next;
+        now = cur->mm->mmap;
+        next = now->vm_next;
+        while(next) {
+            if(addr >= now->vm_start && addr < now->vm_end) break;
+            now = next;
+            next = now->vm_next;
+        }
+        flag |= (now->vm_prot & PROT_WRITE) ? PT_RW : PT_RO;
+        mappages((pagetable_t)cur->mm->pgd, va_g, THREAD_SIZE, tmp, flag);
         /* Just for mailbox to work */
         if(va_g == USER_STACK) cur->user_stack = tmp + THREAD_SIZE;
         return;
@@ -485,6 +495,18 @@ void mem_abort_handler(unsigned long esr, unsigned long addr) {
             printf("[Segmentation fault]: Kill Process\n");
             __exit();
         } 
+        struct vma_area_struct *now, *next;
+        now = cur->mm->mmap;
+        next = now->vm_next;
+        while(next) {
+            if(addr >= now->vm_start && addr < now->vm_end) break;
+            now = next;
+            next = now->vm_next;
+        }
+        if(!(now->vm_prot & PROT_WRITE)) {
+            printf("[Segmentation fault]: Kill Process\n");
+            __exit();
+        }
         uint64_t va_g = PGROUNDDOWN(addr);
         pte_t *pte_base = walk((pagetable_t)cur->mm->pgd, va_g, 1);
         uint64_t k_addr = PA2KA(PTE2PA(*pte_base));
@@ -502,6 +524,7 @@ void mem_abort_handler(unsigned long esr, unsigned long addr) {
                 mappages((pagetable_t)cur->mm->pgd, va_g, THREAD_SIZE, tmp, PT_AF | PT_USER | PT_MEM | PT_RW);
                 /* Just for mailbox to work */
                 if(va_g == USER_STACK) cur->user_stack = tmp + THREAD_SIZE;
+                if(va_g == 0xffffffffe000) cur->m_stack = tmp;
                 return;
             }
         }
@@ -572,14 +595,22 @@ unsigned long chk_vma_valid(struct mm_struct *mm, unsigned long start, unsigned 
     struct vma_area_struct *first = mm->mmap;
     // Walk through vma list
     while(first) {
-        if((first->vm_start > end) || (first->vm_end < start));
+        if((first->vm_start > end) || (first->vm_end < start)) first = first->vm_next;
         else goto Invalid;
-        first = first->vm_next;
     }
     return start;
     // TODO: Invalid start addr, find first fit new addr
     Invalid:
-        return -1;
+        struct vma_area_struct *left, *right;
+        left = mm->mmap;
+        right = left->vm_next;
+        while (right) {
+            if (PGROUNDDOWN(right->vm_start) - PGROUNDUP(left->vm_end) > size)
+                return PGROUNDUP(left->vm_end);
+            left = right;
+            right = right->vm_next;
+        }
+        return 0;
 }
 
 void copy_vma(struct mm_struct *pm, struct mm_struct *cm) {
@@ -594,4 +625,13 @@ void copy_vma(struct mm_struct *pm, struct mm_struct *cm) {
             vma_dest = vma_dest->vm_next;
         }
     }
+}
+
+uint64_t __mmap(uint64_t addr, size_t len, int prot, int flags) {
+    struct thread_t *cur = (struct thread_t *)get_current();
+    unsigned long ret = (unsigned long)addr;
+    len = PGROUNDUP(len);
+    addr = PGROUNDDOWN(ret);
+    ret = create_vma(cur->mm, addr, len, prot, flags);
+    return ret;
 }

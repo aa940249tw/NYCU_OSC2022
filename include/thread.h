@@ -30,6 +30,7 @@ struct thread_t {
     STATUS status;
     uint64_t user_stack;
     uint64_t kernel_stack;
+    uint64_t m_stack;
     uint64_t ksp;
     struct posix_t posix;
     struct mm_struct *mm;

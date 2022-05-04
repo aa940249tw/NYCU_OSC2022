@@ -91,7 +91,7 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                         break;
                     case 6:
                         struct thread_t *cur = (struct thread_t *)get_current();
-                        unsigned int *mbox_addr = (unsigned int *)(((struct trapframe *)trapframe)->x[1] - 0xffffffffe000 + (cur->user_stack - 4096));
+                        unsigned int *mbox_addr = (unsigned int *)(((struct trapframe *)trapframe)->x[1] - 0xffffffffe000 + cur->m_stack);
                         ((struct trapframe *)trapframe)->x[0] = __mbox_call((unsigned char)((struct trapframe *)trapframe)->x[0], mbox_addr);
                         break;
                     case 7:
@@ -102,6 +102,11 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                         break;
                     case 9:
                         __kill(((struct trapframe *)trapframe)->x[0], ((struct trapframe *)trapframe)->x[1]);
+                        break;
+                    case 10:
+                        struct trapframe *t = (struct trapframe *)trapframe;
+                        uint64_t ret = __mmap(t->x[0], t->x[1], t->x[2], t->x[3]); 
+                        t->x[0] = ret;
                         break;
             }
         }
