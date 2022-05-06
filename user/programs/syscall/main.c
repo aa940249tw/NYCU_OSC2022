@@ -241,12 +241,12 @@ void shell() {
     asm volatile("mrs %0, CurrentEL" : "=r"(el));
     printf("Current: %d\n", el >> 2);
   } else if(!strcmp(cmd, "mmap_r")) {
-    char* ptr = mmap(0x1000, 4096, 0x1, 0x20);
+    char* ptr = mmap(0x1000, 4096, 0x1, 0x20 | 0x08000);
     printf("addr: %x\n", ptr);
     printf("%d\n", ptr[1000]); // should be 0
     printf("%d\n", ptr[4097]); // should be segfault
   } else if(!strcmp(cmd, "mmap_w")){
-    char* ptr = mmap(NULL, 4096, 0x1, 0x20);
+    char* ptr = mmap(NULL, 4096, 0x1, 0x20 | 0x08000);
     printf("addr: %x\n", ptr);
     printf("%d\n", ptr[1000]); // should be 0
     ptr[0] = 1; // should be seg fault
