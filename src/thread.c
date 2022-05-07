@@ -129,9 +129,9 @@ void __fork(uint64_t p_trapframe) {
     // Copy context
     for(int i = 0; i < sizeof(struct task_context); i++) *((char *)&(child->context) + i) = *((char *)&(parent->context) + i);
     // Copy user stack
-    for(int i = 0; i < THREAD_SIZE; i++) *((char *)child->user_stack - i) = *((char *)parent->user_stack - i);
+    for(int i = 1; i <= THREAD_SIZE; i++) *((char *)child->user_stack - i) = *((char *)parent->user_stack - i);
     // Copy kernel stack
-    for(int i = 0; i < THREAD_SIZE; i++) *((char *)child->kernel_stack - i) = *((char *)parent->kernel_stack - i);
+    for(int i = 1; i <= THREAD_SIZE; i++) *((char *)child->kernel_stack - i) = *((char *)parent->kernel_stack - i);
     // Copy POSIX
     copy_posix(&(parent->posix), &(child->posix));
     // Set Child's lr

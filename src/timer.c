@@ -5,6 +5,8 @@
 
 #define context_switch_time 1
 
+struct core_timeout *timeout_head;
+
 void timer_init() {
     timeout_head = 0;
 }

@@ -32,6 +32,4 @@ void core_timer_handler_test();
 void timer_init();
 void core_timer_queue_status();
 
-struct core_timeout *timeout_head;
-
 #endif

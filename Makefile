@@ -18,7 +18,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -c $< -o $@
 
 kernel8.img: $(ARMO) $(OBJS)
-	$(TOOLCHAIN_PREFIX)ld -nostdlib -nostartfiles $(ARMO) $(OBJS) -T linker.ld -o kernel8.elf
+	$(TOOLCHAIN_PREFIX)ld -nostdlib $(ARMO) $(OBJS) -T linker.ld -o kernel8.elf
 	$(TOOLCHAIN_PREFIX)objcopy -O binary kernel8.elf kernel8.img
 
 cpio:
@@ -33,10 +33,10 @@ $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
 run:
-	qemu-system-aarch64 -M raspi3 -kernel kernel8.img -serial null -serial stdio -initrd initramfs.cpio -dtb bcm2710-rpi-3-b-plus.dtb
+	qemu-system-aarch64 -M raspi3b -kernel kernel8.img -serial null -serial stdio -initrd initramfs.cpio -dtb bcm2710-rpi-3-b-plus.dtb
 	
 serial:
-	qemu-system-aarch64 -M raspi3 -kernel kernel8.img -serial null -serial pty -display none
+	qemu-system-aarch64 -M raspi3b -kernel kernel8.img -serial null -serial pty -display none
 
 debug:
-	qemu-system-aarch64 -M raspi3 -kernel kernel8.img -serial null -serial stdio -display none -initrd initramfs.cpio -dtb bcm2710-rpi-3-b-plus.dtb -S -s
+	qemu-system-aarch64 -M raspi3b -kernel kernel8.img -serial null -serial stdio -display none -initrd initramfs.cpio -dtb bcm2710-rpi-3-b-plus.dtb -S -s
