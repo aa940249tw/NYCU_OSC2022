@@ -12,6 +12,9 @@ typedef unsigned int        uint32_t;
 typedef unsigned long int   uint64_t;
 typedef unsigned long       size_t;
 
+char* strtok(char *, char);
+char *strcpy(char *, const char *);
+char *strcat(char *, const char *);
 int strcmp(const char *, const char *);
 int strncmp(const char *, const char *, unsigned int);
 char *strncpy(char *, const char *, unsigned int);

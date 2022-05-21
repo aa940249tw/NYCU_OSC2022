@@ -4,6 +4,7 @@
 #include "mm.h"
 #include "thread.h"
 #include "initrd.h"
+#include "vfs.h"
 
 #define CMD_LEN 128
 
@@ -20,11 +21,13 @@ void main() {
 	timer_init();
 	mm_init();
 	cpio_init();
+	rootfs_init();
+	initramfs();
 	printf( "Hello %s!\n"
             "This is character '%c', a hex number: %x and in decimal: %d\n"
             "Padding test: '%8x', '%8d'\n",
             "World", 'A', 32767, 32767, 0x7FFF, -123);
-	init_thread();
-	//shell();
+	//init_thread();
+	shell();
 	asm volatile("wfe\n");
 }

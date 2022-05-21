@@ -34,6 +34,7 @@ void init_thread() {
     thread_i->context.spel0 = thread_i->user_stack;
     init_mm(thread_i->mm);
     init_posix(&(thread_i->posix));
+    for(int i = 0; i < fd_size; i++) thread_i->fd[i] = NULL;
     // Mailbox
     mappages((pagetable_t)thread_i->mm->pgd, 0x3c100000, 0x200000, PA2KA(0x3c100000), PT_AF | PT_USER | PT_MEM | PT_RW);
     asm volatile("msr tpidr_el1, %0"::"r"(thread_i));
@@ -60,6 +61,7 @@ struct thread_t *Thread (void (*func)) {
     new->id = thread_cnt++;
     new->status = RUN;
     init_posix(&(new->posix));
+    for(int i = 0; i < fd_size; i++) new->fd[i] = NULL;
     list_add_tail(&(new->list), &(run_queue->list));
     return new;
 }
@@ -81,6 +83,13 @@ void kill_zombies() {
         kfree(t);
         thread_cnt--;
     }
+}
+
+int get_empty_fd(struct thread_t *t) {
+    for(int i = 0; i < fd_size; i++) {
+        if(t->fd[i] == NULL) return i;
+    }
+    return -1;
 }
 
 void print_con() {

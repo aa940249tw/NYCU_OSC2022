@@ -34,6 +34,6 @@ void cpio_init();
 void cpio_ls();
 void cpio_cat(char *);
 struct exec_t *cpio_find(char *);
-void __exec(char *, char **);
+unsigned long align(unsigned long, unsigned long);
 
 #endif

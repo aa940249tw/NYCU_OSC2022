@@ -11,6 +11,7 @@
 #include "mm.h"
 #include "thread.h"
 #include "syscall.h"
+#include "vfs.h"
 
 extern void _from_el1_to_el0();
 
@@ -116,6 +117,36 @@ void shell_select(char *cmd) {
         asm volatile("eret");
         */
         //printf("\n");
+	}
+	else if(!strcmp(cmd, "file")) {
+        printf("\n");
+        vfs_mkdir("/tmp");
+        vfs_mkdir("/tmp/test");
+        struct file *tf = vfs_open("/tmp/test/file", O_CREAT);
+        char *buffer = "testing";
+        vfs_write(tf, buffer, 10);
+        vfs_close(tf);
+        tf = vfs_open("/tmp/test/file", 0);
+        char readbuf[100];
+        vfs_read(tf, readbuf, 10);
+        vfs_close(tf);	
+        printf("I did it: %s\n", readbuf);	
+        vfs_mount("/tmp", "tmpfs");
+        vfs_mkdir("/tmp/test");
+        tf = vfs_open("/tmp/test/file", O_CREAT);
+        char *buffer1 = "Hello";
+        vfs_write(tf, buffer1, 100);
+        vfs_close(tf);
+        tf = vfs_open("/tmp/test/file", 0);
+        vfs_read(tf, readbuf, 50);
+        vfs_close(tf);	
+        printf("I did it: %s\n", readbuf);	
+	}
+	else if(!strcmp(cmd, "initramfs")) {
+		struct file *tf = vfs_open("/initramfs/text/1.txt", 0);
+		char tmp[4096];
+		vfs_read(tf, tmp, 4096);
+		printf("%s\n", tmp);
 	}
 	else if(cmd[0] != '\0') uart_puts("\nshell: command not found.\n");
 }

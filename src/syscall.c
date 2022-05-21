@@ -3,7 +3,9 @@
 
 typedef enum {SYS_GET_PID, SYS_UART_READ, SYS_UART_WRITE, 
               SYS_EXEC, SYS_FORK, SYS_EXIT, SYS_MBOX, 
-              SYS_SIGRET, SYS_SIGREG, SYS_SIGNAL, SYS_MMAP} SYS_ID;
+              SYS_SIGRET, SYS_SIGREG, SYS_SIGNAL, SYS_MMAP,
+              SYS_OPEN, SYS_CLOSE, SYS_WRITE, SYS_READ,
+              SYS_MKDIR, SYS_MOUNT} SYS_ID;
 
 inline int getpid() {
     /*
@@ -124,4 +126,62 @@ inline void *mmap(void* addr, size_t len, int prot, int flags) {
     register void *ret asm("x0");
     register unsigned long x8 asm("x8") = SYS_MMAP;
     __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x2), "r"(x3), "r"(x8));
+}
+
+inline int open(const char *pathname, int flags) {
+    register const char *x0 asm("x0") = pathname;
+    register int x1 asm("x1") = flags;
+    register unsigned long x8 asm("x8") = SYS_OPEN;
+    register int ret asm("w0");
+    __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x8));
+    return ret;
+}
+
+inline int close(int fd) {
+    register int x0 asm("x0") = fd;
+    register unsigned long x8 asm("x8") = SYS_CLOSE;
+    register int ret asm("w0");
+    __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x8));
+    return ret;
+}
+
+inline int write(int fd, const void *buf, int count) {
+    register int x0 asm("x0") = fd;
+    register const void *x1 asm("x1") = buf;
+    register int x2 asm("x2") = count;
+    register int ret asm("w0");
+    register unsigned long x8 asm("x8") = SYS_WRITE;
+    __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x2), "r"(x8));
+    return ret;
+}
+
+inline int read(int fd, void *buf, int count) {
+    register int x0 asm("x0") = fd;
+    register void *x1 asm("x1") = buf;
+    register int x2 asm("x2") = count;
+    register int ret asm("w0");
+    register unsigned long x8 asm("x8") = SYS_READ;
+    __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x2), "r"(x8));
+    return ret;
+}
+
+inline int mkdir(const char *pathname, int mode) {
+    register const char *x0 asm("x0") = pathname;
+    register int x1 asm("x1") = mode;
+    register unsigned long x8 asm("x8") = SYS_MKDIR;
+    register int ret asm("w0");
+    __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x8));
+    return ret;
+}
+
+inline int mount(const char *src, const char *target, const char *filesystem, unsigned long flags, const void *data) {
+    register const char *x0 asm("x0") = src;
+    register const char *x1 asm("x1") = target;
+    register const char *x2 asm("x2") = filesystem;
+    register unsigned long x3 asm("x3") = flags;
+    register const void *x4 asm("x4") = data;
+    register unsigned long x8 asm("x8") = SYS_MKDIR;
+    register int ret asm("w0");
+    __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x2), "r"(x3), "r"(x4), "r"(x8));
+    return ret;
 }

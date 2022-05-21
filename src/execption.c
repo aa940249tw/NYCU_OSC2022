@@ -7,6 +7,7 @@
 #include "mbox.h"
 #include "posix.h"
 #include "mm.h"
+#include "vfs.h"
 
 char *exception_type[] = {
     "synchronous_sp_el0",
@@ -56,6 +57,8 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                 ;
                 uint64_t syscall;
                 asm volatile("mov %0, x8" : "=r"(syscall));
+                struct trapframe *t = (struct trapframe *)trapframe;
+                struct thread_t *cur = (struct thread_t *)get_current();
                 switch (syscall) {
                     case 0:
                         ;
@@ -90,7 +93,6 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                         __exit();
                         break;
                     case 6:
-                        struct thread_t *cur = (struct thread_t *)get_current();
                         unsigned int *mbox_addr = (unsigned int *)(((struct trapframe *)trapframe)->x[1] - 0xffffffffe000 + cur->m_stack);
                         ((struct trapframe *)trapframe)->x[0] = __mbox_call((unsigned char)((struct trapframe *)trapframe)->x[0], mbox_addr);
                         break;
@@ -104,9 +106,35 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                         __kill(((struct trapframe *)trapframe)->x[0], ((struct trapframe *)trapframe)->x[1]);
                         break;
                     case 10:
-                        struct trapframe *t = (struct trapframe *)trapframe;
                         uint64_t ret = __mmap(t->x[0], t->x[1], t->x[2], t->x[3]); 
                         t->x[0] = ret;
+                        break;
+                    case 11:
+                        int empty = get_empty_fd(cur);
+                        if(empty > 0) {
+                            struct file *f = vfs_open((const char *)t->x[0], t->x[1]);
+                            cur->fd[empty] = f;
+                        }
+                        t->x[0] = empty;
+                        break;
+                    case 12:
+                        if(cur->fd[t->x[0]] == NULL) t->x[0] = -1;
+                        else {
+                            vfs_close(cur->fd[t->x[0]]);
+                            t->x[0] = 0;
+                        }
+                        break;
+                    case 13:
+                        if(cur->fd[t->x[0]] == NULL) t->x[0] = -1;
+                        else t->x[0] = vfs_write(cur->fd[t->x[0]], (const void *)t->x[1], t->x[2]);
+                        break;
+                    case 14:
+                        if(cur->fd[t->x[0]] == NULL) t->x[0] = -1;
+                        else t->x[0] = vfs_read(cur->fd[t->x[0]], (void *)t->x[1], t->x[2]);
+                        
+                        break;
+                    case 15:
+                        t->x[0] = vfs_mount((const char *)t->x[1], (const char *)t->x[2]);
                         break;
             }
         }
@@ -119,5 +147,6 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
     else {
         printf("Not Handled Exception eccurs!!!\n");
         printf("Excpetion type:  %s\tESR:  0x%x\tELR:  0x%x\n", exception_type[type], esr, elr);
+        while(1);
     }
 }
