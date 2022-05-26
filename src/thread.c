@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "mem.h"
 #include "initrd.h"
+#include "dev.h"
 
 extern void return_to_user();
 extern unsigned char kernel_virt;
@@ -35,6 +36,7 @@ void init_thread() {
     init_mm(thread_i->mm);
     init_posix(&(thread_i->posix));
     for(int i = 0; i < fd_size; i++) thread_i->fd[i] = NULL;
+    open_uart_fds(thread_i);
     // Mailbox
     mappages((pagetable_t)thread_i->mm->pgd, 0x3c100000, 0x200000, PA2KA(0x3c100000), PT_AF | PT_USER | PT_MEM | PT_RW);
     asm volatile("msr tpidr_el1, %0"::"r"(thread_i));
@@ -62,6 +64,7 @@ struct thread_t *Thread (void (*func)) {
     new->status = RUN;
     init_posix(&(new->posix));
     for(int i = 0; i < fd_size; i++) new->fd[i] = NULL;
+    open_uart_fds(new);
     list_add_tail(&(new->list), &(run_queue->list));
     return new;
 }

@@ -77,3 +77,76 @@ void *mmap(void* addr, unsigned long len, int prot, int flags) {
   asm volatile("mov %0, x0" : "=r"(result)::);
   return result;
 }
+
+
+int open(const char *pathname, int flags) {
+  asm volatile("mov x8, #11");
+  asm volatile("svc 0");
+  uint64_t result;
+  asm volatile("mov %0, x0" : "=r"(result)::);
+  return result;
+}
+
+int close(int fd) {
+  asm volatile("mov x8, #12");
+  asm volatile("svc 0");
+  uint64_t result;
+  asm volatile("mov %0, x0" : "=r"(result)::);
+  return result;
+}
+
+long write(int fd, const void *buf, size_t count) {
+  asm volatile("mov x8, #13");
+  asm volatile("svc 0");
+  uint64_t result;
+  asm volatile("mov %0, x0" : "=r"(result)::);
+  return result;
+}
+
+long read(int fd, void *buf, size_t count) {
+  asm volatile("mov x8, #14");
+  asm volatile("svc 0");
+  uint64_t result;
+  asm volatile("mov %0, x0" : "=r"(result)::);
+  return result;
+}
+
+int mkdir(const char *pathname, unsigned mode) {
+  asm volatile("mov x8, #15");
+  asm volatile("svc 0");
+  uint64_t result;
+  asm volatile("mov %0, x0" : "=r"(result)::);
+  return result;
+}
+
+int mount(const char *source, const char *target, const char *filesystemtype, unsigned long mountflags, const void *data) {
+  asm volatile("mov x8, #16");
+  asm volatile("svc 0");
+  uint64_t result;
+  asm volatile("mov %0, x0" : "=r"(result)::);
+  return result;
+}
+
+int chdir(const char *path) {
+  asm volatile("mov x8, #17");
+  asm volatile("svc 0");
+  uint64_t result;
+  asm volatile("mov %0, x0" : "=r"(result)::);
+  return result;
+}
+
+long lseek64(int fd, long offset, int whence) {
+  asm volatile("mov x8, #18");
+  asm volatile("svc 0");
+  uint64_t result;
+  asm volatile("mov %0, x0" : "=r"(result)::);
+  return result;
+}
+
+int ioctl(int fd, unsigned long request, ...) {
+  asm volatile("mov x8, #19");
+  asm volatile("svc 0");
+  uint64_t result;
+  asm volatile("mov %0, x0" : "=r"(result)::);
+  return result;
+}

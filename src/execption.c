@@ -8,6 +8,7 @@
 #include "posix.h"
 #include "mm.h"
 #include "vfs.h"
+#include "dev.h"
 
 char *exception_type[] = {
     "synchronous_sp_el0",
@@ -111,7 +112,7 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                         break;
                     case 11:
                         int empty = get_empty_fd(cur);
-                        if(empty > 0) {
+                        if(empty >= 0) {
                             struct file *f = vfs_open((const char *)t->x[0], t->x[1]);
                             cur->fd[empty] = f;
                         }
@@ -121,6 +122,7 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                         if(cur->fd[t->x[0]] == NULL) t->x[0] = -1;
                         else {
                             vfs_close(cur->fd[t->x[0]]);
+                            cur->fd[t->x[0]] = NULL;
                             t->x[0] = 0;
                         }
                         break;
@@ -131,11 +133,21 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                     case 14:
                         if(cur->fd[t->x[0]] == NULL) t->x[0] = -1;
                         else t->x[0] = vfs_read(cur->fd[t->x[0]], (void *)t->x[1], t->x[2]);
-                        
                         break;
                     case 15:
+                        t->x[0] = vfs_mkdir((const char *)t->x[0]);
+                        break;
+                    case 16:
                         t->x[0] = vfs_mount((const char *)t->x[1], (const char *)t->x[2]);
                         break;
+                    case 17:
+                        break;
+                    case 18:
+                        if(cur->fd[t->x[0]] == NULL) t->x[0] = -1;
+                        t->x[0] = __lseek64((struct file *)cur->fd[t->x[0]], t->x[1], t->x[2]);
+                        break;
+                    default:
+                        printf("Syscall Error: %d\n", syscall);
             }
         }
     }

@@ -7,21 +7,29 @@
 int tmpfs_write(struct file *file, const void *buf, size_t len) {
     struct tmpfs_filedata *fd = ((struct tmpfs_data *)file->vnode->internal)->data;
     if(!fd) return -1;
-    if(fd->capacity == 0) fd->data = kmalloc(len);
-    else if(fd->capacity < len) {
-        kfree(fd->data);
-        fd->data = kmalloc(len);
+    if(fd->capacity == 0) {
+        fd->data = kmalloc(file->f_pos + len);
+        fd->capacity = file->f_pos + len;
     }
-    memcpy((void *)fd->data, buf, len);
-    return 0;
+    else if(fd->capacity < file->f_pos + len) {
+        char *data = fd->data;
+        fd->data = kmalloc(file->f_pos + len);
+        memcpy(fd->data, data, fd->capacity);
+        kfree(data);
+        fd->capacity = file->f_pos + len;
+    }
+    memcpy((void *)(fd->data + file->f_pos), buf, len);
+    file->f_pos += len; 
+    return len;
 }
 
 int tmpfs_read(struct file *file, void *buf, size_t len) {
     struct tmpfs_filedata *fd = ((struct tmpfs_data *)file->vnode->internal)->data;
     if(!fd) return -1;
-    memcpy((void *)buf, (fd->data + file->f_pos), len);
+    size_t read_len = (len < fd->capacity) ? len : fd->capacity;
+    memcpy((void *)buf, (fd->data + file->f_pos), read_len);
     file->f_pos += len;
-    return 0;
+    return read_len;
 }
 
 int tmpfs_close(struct file* file) {

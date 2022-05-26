@@ -5,7 +5,7 @@ typedef enum {SYS_GET_PID, SYS_UART_READ, SYS_UART_WRITE,
               SYS_EXEC, SYS_FORK, SYS_EXIT, SYS_MBOX, 
               SYS_SIGRET, SYS_SIGREG, SYS_SIGNAL, SYS_MMAP,
               SYS_OPEN, SYS_CLOSE, SYS_WRITE, SYS_READ,
-              SYS_MKDIR, SYS_MOUNT} SYS_ID;
+              SYS_MKDIR, SYS_MOUNT, SYS_CHDIR, SYS_LSEEK} SYS_ID;
 
 inline int getpid() {
     /*
@@ -183,5 +183,15 @@ inline int mount(const char *src, const char *target, const char *filesystem, un
     register unsigned long x8 asm("x8") = SYS_MKDIR;
     register int ret asm("w0");
     __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x2), "r"(x3), "r"(x4), "r"(x8));
+    return ret;
+}
+
+inline long lseek64(int fd, long offset, int whence) {
+    register int x0 asm("x0") = fd;
+    register long x1 asm("x1") = offset;
+    register int x2 asm("x2") = whence;
+    register long ret asm("x0");
+    register unsigned long x8 asm("x8") = SYS_LSEEK;
+    __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x2), "r"(x8));
     return ret;
 }

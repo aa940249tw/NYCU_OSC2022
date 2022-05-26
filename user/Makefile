@@ -1,9 +1,9 @@
-SHELL = /bin/sh
+SHELL = /bin/bash
 ARM = aarch64-linux-gnu
 CC = $(ARM)-gcc
 LD = $(ARM)-ld
 OBJCOPY = $(ARM)-objcopy
-CFLAGS = -Wall -I $(IDIR) -O0 -mgeneral-regs-only -g
+CFLAGS = -Wall -I $(IDIR) -O0 -mgeneral-regs-only -fno-stack-protector -g
 IDIR = lib/include
 BDIR = build
 
