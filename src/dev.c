@@ -75,16 +75,14 @@ int uart_dev_init(struct vnode *target_file) {
 
 int uart_dev_read(struct file *file, void *buf, size_t len) {
     for (size_t i = 0; i < len; i++) ((char *)buf)[i] = uart_getc();
-    int ret = tmpfs_read(file, buf, len);
-    if(ret < 0) return ret;
-    return 0;
+    //int ret = tmpfs_read(file, buf, len);
+    return len;
 }
 
 int uart_dev_write(struct file *file, const void *buf, size_t len) {
-    int ret = tmpfs_write(file, buf, len);
-    if(ret < 0) return ret;
+    //int ret = tmpfs_write(file, buf, len);
     printf("%s", buf);
-    return 0;
+    return len;
 }
 
 int uart_dev_open(struct vnode* file_node, struct file **target) {
