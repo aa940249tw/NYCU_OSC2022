@@ -180,7 +180,7 @@ inline int mount(const char *src, const char *target, const char *filesystem, un
     register const char *x2 asm("x2") = filesystem;
     register unsigned long x3 asm("x3") = flags;
     register const void *x4 asm("x4") = data;
-    register unsigned long x8 asm("x8") = SYS_MKDIR;
+    register unsigned long x8 asm("x8") = SYS_MOUNT;
     register int ret asm("w0");
     __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x2), "r"(x3), "r"(x4), "r"(x8));
     return ret;
