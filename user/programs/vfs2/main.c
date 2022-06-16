@@ -115,7 +115,9 @@ void showimage() {
   fb_info.isrgb = 1;
 
   ioctl(fb, 0, &fb_info);
-  
+
+  printf("width: %d, height: %d, pitch: %d, isrgb: %d\n", fb_info.width,
+         fb_info.height, fb_info.pitch, fb_info.isrgb);
 
   int x, y;
 
@@ -163,18 +165,18 @@ void vfs_test() {
 
   printf("\nBasic 1\ntmpfile: ");
   fd = open("/tmpfile", O_CREAT);
-  //printf("fd: %d\n", fd);
+  // printf("fd: %d\n", fd);
   len = write(fd, "tmpfile test", 12);
-  //printf("wlen: %ld\n", len);
+  // printf("wlen: %ld\n", len);
   close(fd);
   fd = open("/tmpfile", 0);
-  //printf("fd: %d\n", fd);
+  // printf("fd: %d\n", fd);
   len = read(fd, buf, 64);
-  //printf("rlen: %ld\n", len);
+  // printf("rlen: %ld\n", len);
   close(fd);
   len = len < 0 ? 0 : len;
   buf[len] = 0;
-  if(strcmp(buf, "tmpfile test") == 0) {
+  if (strcmp(buf, "tmpfile test") == 0) {
     printf("success\n");
   } else {
     printf("failed\n");
@@ -183,18 +185,18 @@ void vfs_test() {
   printf("\nBasic 2\ntmpdir: ");
   mkdir("/tmp", 0);
   fd = open("/tmp/tmpfile", O_CREAT);
-  //printf("fd: %d\n", fd);
+  // printf("fd: %d\n", fd);
   len = write(fd, "tmpdir test", 11);
-  //printf("wlen: %ld\n", len);
+  // printf("wlen: %ld\n", len);
   close(fd);
   fd = open("/tmp/tmpfile", 0);
-  //printf("fd: %d\n", fd);
+  // printf("fd: %d\n", fd);
   len = read(fd, buf, 64);
-  //printf("rlen: %ld\n", len);
+  // printf("rlen: %ld\n", len);
   close(fd);
   len = len < 0 ? 0 : len;
   buf[len] = 0;
-  if(strcmp(buf, "tmpdir test") == 0) {
+  if (strcmp(buf, "tmpdir test") == 0) {
     printf("success\n");
   } else {
     printf("failed\n");
@@ -203,16 +205,16 @@ void vfs_test() {
   printf("mount: ");
   mount(NULL, "/tmp", "tmpfs", 0, NULL);
   fd = open("/tmp/tmpfile", O_CREAT);
-  //printf("fd: %d\n", fd);
+  // printf("fd: %d\n", fd);
   len = write(fd, "mnt test", 8);
-  //printf("wlen: %ld\n", len);
+  // printf("wlen: %ld\n", len);
   close(fd);
   fd = open("/tmp/tmpfile", 0);
-  //printf("fd: %d\n", fd);
+  // printf("fd: %d\n", fd);
   len = read(fd, buf, 64);
-  //printf("rlen: %ld\n", len);
+  // printf("rlen: %ld\n", len);
   close(fd);
-  if(len == 8 && strncmp(buf, "mnt test", 8) == 0) {
+  if (len == 8 && strncmp(buf, "mnt test", 8) == 0) {
     printf("success\n");
   } else {
     printf("failed\n");
@@ -239,7 +241,7 @@ void vfs_test() {
   len = len < 0 ? 0 : len;
   buf[len] = 0;
   printf("lookup1: ");
-  if(strcmp(buf, "lookup1 test") == 0) {
+  if (strcmp(buf, "lookup1 test") == 0) {
     printf("success\n");
   } else {
     printf("failed\n");
@@ -252,29 +254,89 @@ void vfs_test() {
   len = len < 0 ? 0 : len;
   buf[len] = 0;
   printf("lookup2: ");
-  if(strcmp(buf, "lookup2 test") == 0) {
+  if (strcmp(buf, "lookup2 test") == 0) {
     printf("success\n");
   } else {
     printf("failed\n");
   }
 
   printf("\nBasic 4\ninitramfs: ");
-  fd = open("/initramfs/vfs1.img", 0);
-  //printf("fd: %d\n", fd);
+  fd = open("/initramfs/vfs2.img", 0);
+  // printf("fd: %d\n", fd);
   len = read(fd, buf, 64);
-  //printf("rlen: %ld\n", len);
+  // printf("rlen: %ld\n", len);
   close(fd);
-  if(len == 64 && *(unsigned int *)(buf + 4) == 0xd503201f) {
+  if (len == 64 && *(unsigned int *)(buf + 4) == 0xd503201f) {
     printf("success\n");
   } else {
     printf("failed\n");
   }
 
-  printf("\nAdvance 1\nuart, you should see stdin, stdout, stderr\n");
-  write(1, "uart stdin\n", 11);
-  printf("stdin (should block), press enter: ");
-  read(0, buf, 1);
-  write(2, "\nuart stderr\n", 12);
+  printf("\nAdvance 1\n");
+  printf("stdin (press \'x\'): ");
+  while (1) {
+    len = read(0, buf, 1);
+    if (len != 1 || buf[0] == 'x') {
+      break;
+    }
+  }
+  if (len == 1) {
+    printf("success\n");
+  } else {
+    printf("failed\n");
+  }
+  len = write(1, "stdout: ", 8);
+  if (len == 8) {
+    printf("success\n");
+  } else {
+    printf("failed\n");
+  }
+  len = write(2, "stderr: ", 8);
+  if (len == 8) {
+    printf("success\n");
+  } else {
+    printf("failed\n");
+  }
+
+  printf("\nTest End\n");
+}
+
+void fat_r() {
+  int fd = open("/boot/FAT_R.TXT", 0);
+  char buf[64];
+  long len;
+  len = read(fd, buf, 64);
+  close(fd);
+  if(len == 10 && strncmp(buf, "fat_r test", 10) == 0) {
+    printf("success\n");
+  } else {
+    printf("failed\n");
+  }
+}
+
+void fat_w() {
+  int fd = open("/boot/FAT_W.TXT", O_CREAT);
+  long len;
+  len = write(fd, "fat_w test", 10);
+  close(fd);
+  if(len == 10) {
+    printf("success\n");
+  } else {
+    printf("failed\n");
+  }
+}
+
+void fat_ws() {
+  int fd = open("/boot/FAT_WS.TXT", O_CREAT);
+  long len;
+  len = write(fd, "fat_ws test", 11);
+  close(fd);
+  sync();
+  if(len == 11) {
+    printf("success\n");
+  } else {
+    printf("failed\n");
+  }
 }
 
 void kill_print() {
@@ -291,7 +353,7 @@ void shell() {
     printf(
         "This is user process\n"
         "help:                  Print this help message.\n"
-        "exec:                  Exec vfs1.img.\n"
+        "exec:                  Exec vfs2.img.\n"
         "pid:                   Show pid of current process.\n"
         "fork:                  Fork a child process that plays awesome "
         "video.\n"
@@ -302,12 +364,15 @@ void shell() {
         "mmap_r:                mmap test 1.\n"
         "mmap_w:                mmap test 2.\n"
         "vfs:                   vfs test.\n"
+        "fat_r:                 fat32 read test.\n"
+        "fat_w:                 fat32 write test.\n"
+        "fat_ws:                fat32 write test with sync.\n"
         "exit:                  Quit.\n");
   } else if (!strcmp(cmd, "pid")) {
     int pid = getpid();
     printf("Pid is: %d\n", pid);
   } else if (!strcmp(cmd, "exec")) {
-    exec("/initramfs/vfs1.img", 0);
+    exec("/initramfs/vfs2.img", 0);
   } else if (!strcmp(cmd, "fork")) {
     int child_pid = fork();
     if (child_pid == 0) {
@@ -347,6 +412,12 @@ void shell() {
     blow_stack();
   } else if (!strcmp(cmd, "vfs")) {
     vfs_test();
+  } else if (!strcmp(cmd, "fat_r")) {
+    fat_r();
+  } else if (!strcmp(cmd, "fat_w")) {
+    fat_w();
+  } else if (!strcmp(cmd, "fat_ws")) {
+    fat_ws();
   } else {
     printf("Not a vaild command!\n");
   }

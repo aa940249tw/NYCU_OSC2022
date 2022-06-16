@@ -5,7 +5,8 @@ typedef enum {SYS_GET_PID, SYS_UART_READ, SYS_UART_WRITE,
               SYS_EXEC, SYS_FORK, SYS_EXIT, SYS_MBOX, 
               SYS_SIGRET, SYS_SIGREG, SYS_SIGNAL, SYS_MMAP,
               SYS_OPEN, SYS_CLOSE, SYS_WRITE, SYS_READ,
-              SYS_MKDIR, SYS_MOUNT, SYS_CHDIR, SYS_LSEEK} SYS_ID;
+              SYS_MKDIR, SYS_MOUNT, SYS_CHDIR, SYS_LSEEK,
+              SYS_IOCTL, SYS_SYNC} SYS_ID;
 
 inline int getpid() {
     /*
@@ -194,4 +195,9 @@ inline long lseek64(int fd, long offset, int whence) {
     register unsigned long x8 asm("x8") = SYS_LSEEK;
     __asm volatile("svc #0" : "=r"(ret) : "r"(x0), "r"(x1), "r"(x2), "r"(x8));
     return ret;
+}
+
+inline void sync() {
+    register unsigned long x8 asm("x8") = SYS_SYNC;
+    __asm volatile("svc #0" : : "r"(x8));
 }

@@ -6,6 +6,8 @@
 #include "initrd.h"
 #include "vfs.h"
 #include "dev.h"
+#include "sdhost.h"
+#include "fat32.h"
 
 #define CMD_LEN 128
 
@@ -25,6 +27,8 @@ void main() {
 	rootfs_init();
 	initramfs();
 	dev_init();
+	sd_init();
+	fat32_init();
 	printf( "Hello %s!\n"
             "This is character '%c', a hex number: %x and in decimal: %d\n"
             "Padding test: '%8x', '%8d'\n",

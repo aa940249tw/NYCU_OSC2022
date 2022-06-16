@@ -150,3 +150,8 @@ int ioctl(int fd, unsigned long request, ...) {
   asm volatile("mov %0, x0" : "=r"(result)::);
   return result;
 }
+
+void sync() {
+  asm volatile("mov x8, #20");
+  asm volatile("svc 0");
+}

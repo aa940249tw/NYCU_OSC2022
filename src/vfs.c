@@ -12,6 +12,7 @@ struct filesystem *get_filesystem(const char *name) {
     struct filesystem *fs = filesystem_list->next;
     while(fs) {
         if(!strcmp(fs->name, name)) return fs;
+        fs = fs->next;
     }
     return NULL;
 }

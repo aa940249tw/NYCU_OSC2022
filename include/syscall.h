@@ -20,5 +20,6 @@ int write(int fd, const void *buf, int count);
 int read(int fd, void *buf, int count);
 int mkdir(const char *pathname, int mode);
 int mount(const char *src, const char *target, const char *filesystem, unsigned long flags, const void *data);
+void sync();
 
 #endif

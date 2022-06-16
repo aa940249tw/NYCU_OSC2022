@@ -9,6 +9,7 @@
 #include "mm.h"
 #include "vfs.h"
 #include "dev.h"
+#include "fat32.h"
 
 char *exception_type[] = {
     "synchronous_sp_el0",
@@ -145,6 +146,11 @@ void svc_handler(int type, unsigned long esr, unsigned long elr, uint64_t trapfr
                     case 18:
                         if(cur->fd[t->x[0]] == NULL) t->x[0] = -1;
                         t->x[0] = __lseek64((struct file *)cur->fd[t->x[0]], t->x[1], t->x[2]);
+                        break;
+                    case 19:
+                        break;
+                    case 20:
+                        fat32_sync();
                         break;
                     default:
                         printf("Syscall Error: %d\n", syscall);
